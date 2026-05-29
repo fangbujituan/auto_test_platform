@@ -37,6 +37,130 @@
   * 开发计划
   * 部署方案
 
-项目状态：
+【操作5】开始整合 ai-server
+时间：2026-05-30
+描述：
+- 用户要求整合 ai-server，将 AI 智能体能力整合到主平台
+- 开始制定整合方案
+- 计划步骤：分析核心模块 → 整合工具 → 整合 LLM 网关 → 整合 Agent
+
+【操作6】创建整合方案文档
+时间：2026-05-30
+描述：
+- 完成 ai-server 整合方案设计
+- 保存到 doc/ai-server整合方案.md
+- 方案包含：项目现状分析、整合策略、详细计划
+
+【操作7】开始合并依赖
+时间：2026-05-30
+描述：
+- 将 ai-server/requirements.txt 的依赖合并到主项目
+- 新增依赖包括 langchain、playwright、loguru 等
+
+【操作8】分析 ai-server 核心模块
+时间：2026-05-30
+描述：
+- 分析了 ai-server/llms.py（多网关 LLM 支持）
+- 分析了 token_counter.py（Token 消耗统计 v2）
+- 分析了 tools/ 目录下的核心模块
+- 创建了日志桥接适配主项目的日志系统
+
+【操作9】创建整合结构
+时间：2026-05-30
+描述：
+- 创建了 app/utils/debug/ 目录
+- 创建了 readlog.py（日志桥接）
+- 分析了完整的整合方案
+
+【操作10】创建 .gitignore 文件
+时间：2026-05-30
+描述：
+- 创建了完整的 .gitignore 文件
+- 包含 Python、Node.js、IDE、数据库、日志、环境变量等过滤规则
+- 特别为 AI/LLM 相关内容添加了过滤规则
+
+【操作11】开始 LLM 多网关整合 (选项A)
+时间：2026-05-30
+描述：
+- 用户选择选项A：分模块逐步整合
+- 第一步：整合 LLM 多网关支持
+- 查看主项目现有 AI 服务实现
+- 准备创建 app/services/llm_gateway.py
+
+【操作12】完成 LLM 多网关整合
+时间：2026-05-30
+描述：
+- 成功创建 app/services/llm_gateway.py
+- 整合了 AIOP、Kiro、AIClient2API 三个网关
+- 支持 LangChain 的 ChatOpenAI 和回调机制
+- 包含完整的日志记录功能
+
+【操作13】完成 Token 统计工具整合
+时间：2026-05-30
+描述：
+    - 成功创建 app/utils/token_counter.py
+    - 包含完整的 Token 统计功能
+    - 支持多维度统计和用例管理
+    - 已集成到 LLM 网关中
+
+【操作14】完成中间件模块整合
+时间：2026-05-30
+描述：
+    - 创建了 app/utils/middleware/ 目录
+    - 分析了所有中间件的功能
+    - 建立了中间件模块的入口文件
+    - 中间件可按需逐步移植
+
+【操作15】创建整合总结文档
+时间：2026-05-30
+描述：
+    - 创建整合完成报告
+    - 记录整合成果
+    - 规划后续工作
+
+【操作16】开始第二阶段整合
+时间：2026-05-30
+描述：
+    - 用户要求继续整合中间件和 Playwright
+    - 制定第二阶段整合计划
+    - 拆解成小任务逐步执行
+
+【操作17】创建第二阶段整合计划
+时间：2026-05-30
+描述：
+    - 分析剩余待整合模块
+    - 制定详细的整合计划文档
+    - 规划任务优先级
+
+【操作18】整合 DOM 工具模块 (dom_utils.py)
+时间：2026-05-30
+描述：
+    - 完整移植 dom_utils.py
+    - 包含 Playwright 快照清理功能
+    - 包含 HTML DOM 清理功能
+    - 包含重复行截断功能
+    - 所有依赖已正确适配
+
+【操作19】整合中间件：DOM 清理 (dom_cleaner.py)
+时间：2026-05-30
+描述：
+    - 完整移植 DOMCleanerMiddleware
+    - 支持自动检测和清理 Playwright 和 HTML 格式
+    - 分级清理机制（Tier1/Tier2/Summary）
+    - 超时错误处理和友好提示
+    - 与 SemanticSelectorMiddleware 集成（已做兼容处理）
+
+【操作20】移植基础中间件 (logging, thread_context, base64_filter)
+时间: 2026-05-30
+描述:
+    - 移植 BeforeAgentMiddleware：模型调用前日志记录
+    - 移植 ThreadContextMiddleware：注入 thread_id 到 ContextVar
+    - 移植 Base64FilterMiddleware：base64 图片过滤和保存
+    - 所有模块已适配主项目的路径结构
+
+项目状态:
 - Git仓库：已初始化（本地仓库，无远程绑定）
+- .gitignore：已创建
 - 需求梳理：已完成
+- 第一阶段整合：完成
+- 第二阶段整合：已完成核心工具和基础中间件（共 7 个模块移植成功）

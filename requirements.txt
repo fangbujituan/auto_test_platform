@@ -24,3 +24,19 @@ pytest>=8.0.0
 
 # AI Agent 编排（LangGraph）
 langgraph>=0.2.0
+
+# ==================== 来自 ai-server ====================
+# LangChain 生态
+langchain[openai]
+langchain-deepseek
+langchain-zhipuai
+langchain-mcp-adapters
+langgraph-cli[inmem]
+
+# 其他依赖
+beautifulsoup4
+deepagents
+loguru
+fastapi
+playwright
+websockets
