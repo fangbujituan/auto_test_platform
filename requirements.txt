@@ -1,0 +1,26 @@
+flask>=3.0.0
+flask-sqlalchemy>=3.1.0
+flask-cors>=4.0.0
+flask-smorest>=0.44.0
+marshmallow>=3.20.0
+pymysql>=1.1.0
+requests>=2.31.0
+pyyaml>=6.0
+cryptography>=42.0.0
+python-dotenv>=1.0.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+sqlalchemy>=2.0.0
+
+# 调度与定时任务
+APScheduler>=3.10.0
+croniter>=1.4.0
+
+# WSGI 服务器（生产环境部署）
+gunicorn>=21.0.0
+
+# 开发/测试依赖
+pytest>=8.0.0
+
+# AI Agent 编排（LangGraph）
+langgraph>=0.2.0

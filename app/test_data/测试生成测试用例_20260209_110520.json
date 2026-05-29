@@ -1,0 +1,1635 @@
+[
+  {
+    "case_id": "TC_001",
+    "case_type": "positive",
+    "description": "最小必传参数集",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "成功",
+    "test_point": "验证仅传必传参数时接口正常"
+  },
+  {
+    "case_id": "TC_002",
+    "case_type": "positive",
+    "description": "全参数正常值",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "成功",
+    "test_point": "验证传入所有参数时接口正常"
+  },
+  {
+    "case_id": "TC_003",
+    "case_type": "negative",
+    "description": "缺失必传参数: UserID",
+    "params": {
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 UserID 时返回错误"
+  },
+  {
+    "case_id": "TC_004",
+    "case_type": "negative",
+    "description": "必传参数为None: UserID",
+    "params": {
+      "UserID": null,
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 UserID 为None时返回错误"
+  },
+  {
+    "case_id": "TC_005",
+    "case_type": "negative",
+    "description": "必传参数为空字符串: UserID",
+    "params": {
+      "UserID": "",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 UserID 为空字符串时返回错误"
+  },
+  {
+    "case_id": "TC_006",
+    "case_type": "negative",
+    "description": "缺失必传参数: Data",
+    "params": {
+      "UserID": "7024"
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 Data 时返回错误"
+  },
+  {
+    "case_id": "TC_007",
+    "case_type": "negative",
+    "description": "必传参数为None: Data",
+    "params": {
+      "UserID": "7024",
+      "Data": null
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 Data 为None时返回错误"
+  },
+  {
+    "case_id": "TC_008",
+    "case_type": "negative",
+    "description": "缺失必传参数: Data.vendorID",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 Data.vendorID 时返回错误"
+  },
+  {
+    "case_id": "TC_009",
+    "case_type": "negative",
+    "description": "必传参数为None: Data.vendorID",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": null
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 Data.vendorID 为None时返回错误"
+  },
+  {
+    "case_id": "TC_010",
+    "case_type": "negative",
+    "description": "缺失必传参数: Data.setName",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 Data.setName 时返回错误"
+  },
+  {
+    "case_id": "TC_011",
+    "case_type": "negative",
+    "description": "必传参数为None: Data.setName",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.setName": null
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 Data.setName 为None时返回错误"
+  },
+  {
+    "case_id": "TC_012",
+    "case_type": "negative",
+    "description": "必传参数为空字符串: Data.setName",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.setName": ""
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 Data.setName 为空字符串时返回错误"
+  },
+  {
+    "case_id": "TC_013",
+    "case_type": "negative",
+    "description": "缺失必传参数: Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 Data.isActiveRule_Sets 时返回错误"
+  },
+  {
+    "case_id": "TC_014",
+    "case_type": "negative",
+    "description": "必传参数为None: Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.isActiveRule_Sets": null
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 Data.isActiveRule_Sets 为None时返回错误"
+  },
+  {
+    "case_id": "TC_015",
+    "case_type": "negative",
+    "description": "缺失必传参数: Data.rule_Relation",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 Data.rule_Relation 时返回错误"
+  },
+  {
+    "case_id": "TC_016",
+    "case_type": "negative",
+    "description": "必传参数为None: Data.rule_Relation",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.rule_Relation": null
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 Data.rule_Relation 为None时返回错误"
+  },
+  {
+    "case_id": "TC_017",
+    "case_type": "negative",
+    "description": "UserID 类型错误: int",
+    "params": {
+      "UserID": 123,
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 UserID 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_018",
+    "case_type": "negative",
+    "description": "UserID 类型错误: bool",
+    "params": {
+      "UserID": true,
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      }
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 UserID 传入 bool 类型时返回错误"
+  },
+  {
+    "case_id": "TC_019",
+    "case_type": "negative",
+    "description": "Data 类型错误: str",
+    "params": {
+      "UserID": "7024",
+      "Data": "abc"
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 Data 传入 str 类型时返回错误"
+  },
+  {
+    "case_id": "TC_020",
+    "case_type": "negative",
+    "description": "Data 类型错误: int",
+    "params": {
+      "UserID": "7024",
+      "Data": 123
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 Data 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_021",
+    "case_type": "combination",
+    "description": "组合测试: UserID+Data.vendorID",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 UserID 和 Data.vendorID 的组合场景"
+  },
+  {
+    "case_id": "TC_022",
+    "case_type": "combination",
+    "description": "组合测试: UserID+Data.vendorID",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 UserID 和 Data.vendorID 的组合场景"
+  },
+  {
+    "case_id": "TC_023",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.setName",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.setName": "test"
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.setName 的组合场景"
+  },
+  {
+    "case_id": "TC_024",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.setName",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.setName": "a"
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.setName 的组合场景"
+  },
+  {
+    "case_id": "TC_025",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.setName",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.setName": "test"
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.setName 的组合场景"
+  },
+  {
+    "case_id": "TC_026",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.setName",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.setName": "a"
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.setName 的组合场景"
+  },
+  {
+    "case_id": "TC_027",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.isActiveRule_Sets": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.isActiveRule_Sets 的组合场景"
+  },
+  {
+    "case_id": "TC_028",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.isActiveRule_Sets": false
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.isActiveRule_Sets 的组合场景"
+  },
+  {
+    "case_id": "TC_029",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.isActiveRule_Sets": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.isActiveRule_Sets 的组合场景"
+  },
+  {
+    "case_id": "TC_030",
+    "case_type": "combination",
+    "description": "组合测试: Data.vendorID+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.vendorID": 1,
+      "Data.isActiveRule_Sets": false
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.vendorID 和 Data.isActiveRule_Sets 的组合场景"
+  },
+  {
+    "case_id": "TC_031",
+    "case_type": "combination",
+    "description": "组合测试: Data.setName+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.setName": "test",
+      "Data.isActiveRule_Sets": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.setName 和 Data.isActiveRule_Sets 的组合场景"
+  },
+  {
+    "case_id": "TC_032",
+    "case_type": "combination",
+    "description": "组合测试: Data.setName+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.setName": "test",
+      "Data.isActiveRule_Sets": false
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.setName 和 Data.isActiveRule_Sets 的组合场景"
+  },
+  {
+    "case_id": "TC_033",
+    "case_type": "combination",
+    "description": "组合测试: Data.setName+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.setName": "a",
+      "Data.isActiveRule_Sets": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.setName 和 Data.isActiveRule_Sets 的组合场景"
+  },
+  {
+    "case_id": "TC_034",
+    "case_type": "combination",
+    "description": "组合测试: Data.setName+Data.isActiveRule_Sets",
+    "params": {
+      "UserID": "7024",
+      "Data": {
+        "vendorID": 1221320,
+        "setName": "marketplace-rule-test-data32",
+        "isActiveRule_Sets": true,
+        "rule_Relation": [
+          {
+            "billingRuleSetID": 0,
+            "billingCategoryID": 1,
+            "questionActionID": 16,
+            "itemGradeID": 0
+          }
+        ],
+        "invoicePayperiod": "Daily",
+        "invoicePayperiodDetail": "12:01 AM",
+        "invoicePdfFormat": "1",
+        "invoiceDetailExportFormat": 2,
+        "isShowMarkupforFreightCharge": false,
+        "isShowSmallPackageMetrics": false,
+        "autoSendEmailByCondition": true,
+        "autoSendInvoiceInStatus": "12",
+        "billingRule_Sets_TitleList": [],
+        "isAllowPreview": true,
+        "cftOneCaseFactorID": -1,
+        "mtOnePalletFactorID": -1,
+        "storageGenerateFrom": -1,
+        "currentSetID": 0,
+        "currentRuleID": 15942,
+        "billingItems": [
+          {
+            "billingItemID": 34954,
+            "defQuestionID": 88461,
+            "categoryCode": "HD"
+          }
+        ],
+        "scope": 1,
+        "termID": 1002,
+        "preOrLateBill": "2",
+        "invoiceDeliveryMethod": 1,
+        "billingRuleCaseList": [],
+        "minimumTotalAmount": 0,
+        "ClientID": "1000"
+      },
+      "Data.setName": "a",
+      "Data.isActiveRule_Sets": false
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 Data.setName 和 Data.isActiveRule_Sets 的组合场景"
+  }
+]

@@ -1,0 +1,929 @@
+[
+  {
+    "case_id": "TC_001",
+    "case_type": "positive",
+    "description": "最小必传参数集",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证仅传必传参数时接口正常"
+  },
+  {
+    "case_id": "TC_002",
+    "case_type": "positive",
+    "description": "全参数正常值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证传入所有参数时接口正常"
+  },
+  {
+    "case_id": "TC_003",
+    "case_type": "negative",
+    "description": "缺失必传参数: username",
+    "params": {
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 username 时返回错误"
+  },
+  {
+    "case_id": "TC_004",
+    "case_type": "negative",
+    "description": "必传参数为None: username",
+    "params": {
+      "username": null,
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 username 为None时返回错误"
+  },
+  {
+    "case_id": "TC_005",
+    "case_type": "negative",
+    "description": "必传参数为空字符串: username",
+    "params": {
+      "username": "",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 username 为空字符串时返回错误"
+  },
+  {
+    "case_id": "TC_006",
+    "case_type": "negative",
+    "description": "缺失必传参数: password",
+    "params": {
+      "username": "testuser123",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 password 时返回错误"
+  },
+  {
+    "case_id": "TC_007",
+    "case_type": "negative",
+    "description": "必传参数为None: password",
+    "params": {
+      "username": "testuser123",
+      "password": null,
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 password 为None时返回错误"
+  },
+  {
+    "case_id": "TC_008",
+    "case_type": "negative",
+    "description": "必传参数为空字符串: password",
+    "params": {
+      "username": "testuser123",
+      "password": "",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 password 为空字符串时返回错误"
+  },
+  {
+    "case_id": "TC_009",
+    "case_type": "negative",
+    "description": "缺失必传参数: email",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 email 时返回错误"
+  },
+  {
+    "case_id": "TC_010",
+    "case_type": "negative",
+    "description": "必传参数为None: email",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": null,
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 email 为None时返回错误"
+  },
+  {
+    "case_id": "TC_011",
+    "case_type": "negative",
+    "description": "缺失必传参数: agree_terms",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介"
+    },
+    "expected_result": "失败: 参数缺失",
+    "test_point": "验证缺少必传参数 agree_terms 时返回错误"
+  },
+  {
+    "case_id": "TC_012",
+    "case_type": "negative",
+    "description": "必传参数为None: agree_terms",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": null
+    },
+    "expected_result": "失败: 参数为空",
+    "test_point": "验证必传参数 agree_terms 为None时返回错误"
+  },
+  {
+    "case_id": "TC_013",
+    "case_type": "boundary",
+    "description": "username 长度小于最小值",
+    "params": {
+      "username": "aa",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 长度不足",
+    "test_point": "验证 username 长度小于 3 时返回错误"
+  },
+  {
+    "case_id": "TC_014",
+    "case_type": "boundary",
+    "description": "username 长度等于最小值",
+    "params": {
+      "username": "aaa",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 username 长度等于 3 时正常"
+  },
+  {
+    "case_id": "TC_015",
+    "case_type": "boundary",
+    "description": "username 长度等于最大值",
+    "params": {
+      "username": "aaaaaaaaaaaaaaaaaaaa",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 username 长度等于 20 时正常"
+  },
+  {
+    "case_id": "TC_016",
+    "case_type": "boundary",
+    "description": "username 长度大于最大值",
+    "params": {
+      "username": "aaaaaaaaaaaaaaaaaaaaa",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 长度超限",
+    "test_point": "验证 username 长度大于 20 时返回错误"
+  },
+  {
+    "case_id": "TC_017",
+    "case_type": "boundary",
+    "description": "password 长度小于最小值",
+    "params": {
+      "username": "testuser123",
+      "password": "aaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 长度不足",
+    "test_point": "验证 password 长度小于 6 时返回错误"
+  },
+  {
+    "case_id": "TC_018",
+    "case_type": "boundary",
+    "description": "password 长度等于最小值",
+    "params": {
+      "username": "testuser123",
+      "password": "aaaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 password 长度等于 6 时正常"
+  },
+  {
+    "case_id": "TC_019",
+    "case_type": "boundary",
+    "description": "password 长度等于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 password 长度等于 50 时正常"
+  },
+  {
+    "case_id": "TC_020",
+    "case_type": "boundary",
+    "description": "password 长度大于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 长度超限",
+    "test_point": "验证 password 长度大于 50 时返回错误"
+  },
+  {
+    "case_id": "TC_021",
+    "case_type": "boundary",
+    "description": "age 小于最小值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 0,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 数值过小",
+    "test_point": "验证 age 小于 1 时返回错误"
+  },
+  {
+    "case_id": "TC_022",
+    "case_type": "boundary",
+    "description": "age 等于最小值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 1,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 age 等于 1 时正常"
+  },
+  {
+    "case_id": "TC_023",
+    "case_type": "boundary",
+    "description": "age 等于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 150,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 age 等于 150 时正常"
+  },
+  {
+    "case_id": "TC_024",
+    "case_type": "boundary",
+    "description": "age 大于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 151,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 数值过大",
+    "test_point": "验证 age 大于 150 时返回错误"
+  },
+  {
+    "case_id": "TC_025",
+    "case_type": "boundary",
+    "description": "nickname 长度等于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 nickname 长度等于 50 时正常"
+  },
+  {
+    "case_id": "TC_026",
+    "case_type": "boundary",
+    "description": "nickname 长度大于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 长度超限",
+    "test_point": "验证 nickname 长度大于 50 时返回错误"
+  },
+  {
+    "case_id": "TC_027",
+    "case_type": "boundary",
+    "description": "bio 长度等于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "agree_terms": true
+    },
+    "expected_result": "成功",
+    "test_point": "验证 bio 长度等于 200 时正常"
+  },
+  {
+    "case_id": "TC_028",
+    "case_type": "boundary",
+    "description": "bio 长度大于最大值",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 长度超限",
+    "test_point": "验证 bio 长度大于 200 时返回错误"
+  },
+  {
+    "case_id": "TC_029",
+    "case_type": "negative",
+    "description": "username 类型错误: int",
+    "params": {
+      "username": 123,
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 username 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_030",
+    "case_type": "negative",
+    "description": "username 类型错误: bool",
+    "params": {
+      "username": true,
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 username 传入 bool 类型时返回错误"
+  },
+  {
+    "case_id": "TC_031",
+    "case_type": "negative",
+    "description": "password 类型错误: int",
+    "params": {
+      "username": "testuser123",
+      "password": 123,
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 password 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_032",
+    "case_type": "negative",
+    "description": "password 类型错误: bool",
+    "params": {
+      "username": "testuser123",
+      "password": true,
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 password 传入 bool 类型时返回错误"
+  },
+  {
+    "case_id": "TC_033",
+    "case_type": "negative",
+    "description": "age 类型错误: str",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": "abc",
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 age 传入 str 类型时返回错误"
+  },
+  {
+    "case_id": "TC_034",
+    "case_type": "negative",
+    "description": "age 类型错误: bool",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": true,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 age 传入 bool 类型时返回错误"
+  },
+  {
+    "case_id": "TC_035",
+    "case_type": "negative",
+    "description": "gender 类型错误: int",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": 123,
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 gender 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_036",
+    "case_type": "negative",
+    "description": "gender 类型错误: bool",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": true,
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 gender 传入 bool 类型时返回错误"
+  },
+  {
+    "case_id": "TC_037",
+    "case_type": "negative",
+    "description": "nickname 类型错误: int",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": 123,
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 nickname 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_038",
+    "case_type": "negative",
+    "description": "nickname 类型错误: bool",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": true,
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 nickname 传入 bool 类型时返回错误"
+  },
+  {
+    "case_id": "TC_039",
+    "case_type": "negative",
+    "description": "bio 类型错误: int",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": 123,
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 bio 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_040",
+    "case_type": "negative",
+    "description": "bio 类型错误: bool",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": true,
+      "agree_terms": true
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 bio 传入 bool 类型时返回错误"
+  },
+  {
+    "case_id": "TC_041",
+    "case_type": "negative",
+    "description": "agree_terms 类型错误: str",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": "true"
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 agree_terms 传入 str 类型时返回错误"
+  },
+  {
+    "case_id": "TC_042",
+    "case_type": "negative",
+    "description": "agree_terms 类型错误: int",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": 1
+    },
+    "expected_result": "失败: 类型错误",
+    "test_point": "验证 agree_terms 传入 int 类型时返回错误"
+  },
+  {
+    "case_id": "TC_043",
+    "case_type": "negative",
+    "description": "username 重复值测试",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 字段值已存在",
+    "test_point": "验证 username 使用已存在的值时返回错误（需先创建重复数据）"
+  },
+  {
+    "case_id": "TC_044",
+    "case_type": "negative",
+    "description": "email 重复值测试",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "失败: 字段值已存在",
+    "test_point": "验证 email 使用已存在的值时返回错误（需先创建重复数据）"
+  },
+  {
+    "case_id": "TC_045",
+    "case_type": "combination",
+    "description": "组合测试: username+password",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 username 和 password 的组合场景"
+  },
+  {
+    "case_id": "TC_046",
+    "case_type": "combination",
+    "description": "组合测试: username+password",
+    "params": {
+      "username": "testuser123",
+      "password": "aaaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 username 和 password 的组合场景"
+  },
+  {
+    "case_id": "TC_047",
+    "case_type": "combination",
+    "description": "组合测试: username+password",
+    "params": {
+      "username": "aaa",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 username 和 password 的组合场景"
+  },
+  {
+    "case_id": "TC_048",
+    "case_type": "combination",
+    "description": "组合测试: username+password",
+    "params": {
+      "username": "aaa",
+      "password": "aaaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 username 和 password 的组合场景"
+  },
+  {
+    "case_id": "TC_049",
+    "case_type": "combination",
+    "description": "组合测试: password+agree_terms",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 password 和 agree_terms 的组合场景"
+  },
+  {
+    "case_id": "TC_050",
+    "case_type": "combination",
+    "description": "组合测试: password+agree_terms",
+    "params": {
+      "username": "testuser123",
+      "password": "Pass@123456",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": false
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 password 和 agree_terms 的组合场景"
+  },
+  {
+    "case_id": "TC_051",
+    "case_type": "combination",
+    "description": "组合测试: password+agree_terms",
+    "params": {
+      "username": "testuser123",
+      "password": "aaaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": true
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 password 和 agree_terms 的组合场景"
+  },
+  {
+    "case_id": "TC_052",
+    "case_type": "combination",
+    "description": "组合测试: password+agree_terms",
+    "params": {
+      "username": "testuser123",
+      "password": "aaaaaa",
+      "email": "test@example.com",
+      "phone": "13800138000",
+      "age": 25,
+      "gender": "male",
+      "nickname": "测试用户",
+      "bio": "这是个人简介",
+      "agree_terms": false
+    },
+    "expected_result": "成功或失败（取决于值）",
+    "test_point": "验证 password 和 agree_terms 的组合场景"
+  }
+]

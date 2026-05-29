@@ -1,0 +1,13 @@
+langgraph
+langchain[openai]
+langchain-deepseek
+langchain-zhipuai
+langchain-mcp-adapters
+langgraph-cli[inmem]
+beautifulsoup4
+deepagents
+loguru
+python-dotenv
+fastapi
+playwright
+websockets

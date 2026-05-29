@@ -1,0 +1,21 @@
+{
+  "dependencies":[
+    "."
+  ],
+  "graphs":{
+    "agent":{
+      "path":"./main.py:agent"
+    },
+    "web_agent":{
+      "path":"./main.py:web_agent"
+    },
+    "recording_agent":{
+      "path":"./main.py:recording_agent"
+    }
+  },
+  "env":".env",
+  "http":{
+    "app":"./webapp.py:app"
+  },
+  "image_distro":"wolfi"
+}
