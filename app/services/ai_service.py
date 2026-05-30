@@ -207,11 +207,23 @@ class AIService:
 
     def _get_adapter(self, provider_config, api_key: str):
         """根据配置获取对应的适配器实例。"""
+        kwargs = {}
+        if provider_config.provider_type == "aiop":
+            kwargs = {
+                "aiop_app_code": provider_config.aiop_app_code,
+                "aiop_tenant_id": provider_config.aiop_tenant_id,
+                "aiop_agent_code": provider_config.aiop_agent_code,
+                "aiop_agent_name": provider_config.aiop_agent_name,
+                "aiop_user_id": provider_config.aiop_user_id,
+                "aiop_user_name": provider_config.aiop_user_name,
+            }
+        
         return get_adapter(
             provider_type=provider_config.provider_type,
             api_key=api_key,
             base_url=provider_config.base_url,
             model_name=provider_config.model_name,
+            **kwargs
         )
 
     @staticmethod

@@ -50,9 +50,15 @@ AICLIENT_BASE_URL = os.getenv("AICLIENT_BASE_URL", "http://localhost:9000")
 AICLIENT_API_KEY = os.getenv("AICLIENT_API_KEY", "sk-test")
 
 # ========================================
+# Local Gateway 配置（局域网部署的本地大模型）
+# ========================================
+LOCAL_BASE_URL = os.getenv("LOCAL_BASE_URL", "http://192.168.1.7:4000/v1")
+LOCAL_API_KEY = os.getenv("LOCAL_API_KEY", "sk-your-super-secret-key-2026")
+
+# ========================================
 # 默认模型配置
 # ========================================
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "aiop/azure/gpt-5.4")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "local/llama3.2-1b")
 
 
 class LLMLogger(BaseCallbackHandler):
@@ -119,6 +125,7 @@ logs.info(f"  - 默认模型: {DEFAULT_MODEL}")
 logs.info(f"  - AIOP Gateway: {AIOP_BASE_URL} ({'已配置' if AIOP_API_KEY else '未配置'})")
 logs.info(f"  - Kiro Gateway: {KIRO_BASE_URL} ({'已配置' if KIRO_API_KEY else '未配置'})")
 logs.info(f"  - AIClient2API: {AICLIENT_BASE_URL} ({'已配置' if AICLIENT_API_KEY else '未配置'})")
+logs.info(f"  - Local Gateway: {LOCAL_BASE_URL} ({'已配置' if LOCAL_API_KEY else '未配置'})")
 
 
 def _b64_encode(text: str) -> str:
@@ -273,6 +280,39 @@ def get_aiclient_model(
     return llm
 
 
+def get_local_model(
+    model: str = "llama3.2-1b",
+    callbacks: Optional[List[BaseCallbackHandler]] = None
+):
+    """获取 Local 模型（通过局域网部署的本地大模型网关）。
+    
+    Args:
+        model: 模型名称：
+            - llama3.2-1b: Llama 3.2 1B（默认）
+            - 其他本地部署的模型
+        callbacks: 回调处理器列表
+    """
+    if not LOCAL_API_KEY:
+        raise ValueError("LOCAL_API_KEY 未配置，请在环境变量中设置")
+    
+    if not LOCAL_BASE_URL:
+        raise ValueError("LOCAL_BASE_URL 未配置，请在环境变量中设置")
+    
+    # 添加日志记录器
+    if callbacks is None:
+        callbacks = []
+    callbacks.append(LLMLogger("Local"))
+    
+    llm = ChatOpenAI(
+        model=model,
+        api_key=LOCAL_API_KEY,
+        base_url=LOCAL_BASE_URL,
+        callbacks=callbacks,
+    )
+    logs.info(f"[LLM] 创建 Local 模型: {model}")
+    return llm
+
+
 def get_model(
     model: Optional[str] = None,
     callbacks: Optional[List[BaseCallbackHandler]] = None,
@@ -288,6 +328,7 @@ def get_model(
             - "aiclient/claude-sonnet-4-6": AIClient2API Claude（默认 claude-kiro-oauth）
             - "aiclient/claude-kiro-oauth/claude-sonnet-4-6": AIClient2API Claude via Kiro
             - "aiclient/gemini-cli-oauth/gemini-2.5-flash": AIClient2API Gemini
+            - "local/llama3.2-1b": 局域网本地大模型
         callbacks: 回调处理器列表
         agent_name: Agent 名称（用于 Token 统计标识）
     
@@ -319,15 +360,15 @@ def get_model(
         full_model = "/".join(parts[1:])
     elif len(parts) >= 2:
         gateway = parts[0]
-        if gateway in ("aiop", "kiro", "aiclient"):
+        if gateway in ("aiop", "kiro", "aiclient", "local"):
             full_model = "/".join(parts[1:])
         else:
             # provider/model 格式，默认使用 AIOP
             gateway = "aiop"
             full_model = model_name
     else:
-        # 只有模型名，默认使用 Kiro
-        gateway = "kiro"
+        # 只有模型名，默认使用 Local
+        gateway = "local"
         full_model = model_name
     
     if gateway == "aiop":
@@ -336,8 +377,10 @@ def get_model(
         return get_kiro_model(model=full_model, callbacks=callbacks)
     elif gateway == "aiclient":
         return get_aiclient_model(model=full_model, callbacks=callbacks)
+    elif gateway == "local":
+        return get_local_model(model=full_model, callbacks=callbacks)
     else:
-        raise ValueError(f"未知的网关: {gateway}。支持的网关: aiop, kiro, aiclient")
+        raise ValueError(f"未知的网关: {gateway}。支持的网关: aiop, kiro, aiclient, local")
 
 
 def get_default_model(agent_name: Optional[str] = None, callbacks: Optional[List[BaseCallbackHandler]] = None):

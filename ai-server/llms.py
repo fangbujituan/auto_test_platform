@@ -46,6 +46,12 @@ AICLIENT_BASE_URL = os.getenv("AICLIENT_BASE_URL", "http://localhost:9000")
 AICLIENT_API_KEY = os.getenv("AICLIENT_API_KEY", "sk-test")
 
 # ============================================================================
+# Local Gateway 配置（局域网部署的本地大模型）
+# ============================================================================
+LOCAL_BASE_URL = os.getenv("LOCAL_BASE_URL", "http://192.168.1.7:4000/v1")
+LOCAL_API_KEY = os.getenv("LOCAL_API_KEY", "sk-your-super-secret-key-2026")
+
+# ============================================================================
 # 默认模型配置
 # ============================================================================
 # 格式: "gateway/provider/model" 或 "gateway/model"
@@ -54,7 +60,8 @@ AICLIENT_API_KEY = os.getenv("AICLIENT_API_KEY", "sk-test")
 # - kiro/claude-sonnet-4.5: Kiro Gateway Claude Sonnet
 # - aiclient/claude-kiro-oauth/claude-sonnet-4-6: AIClient2API Claude via Kiro
 # - aiclient/claude-sonnet-4-6: AIClient2API Claude（简写）
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "aiop/azure/gpt-5.4")
+# - local/llama3.2-1b: 局域网本地大模型（推荐）
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "local/llama3.2-1b")
 
 
 def _log(message: str):
@@ -136,6 +143,7 @@ _log(f"  - 默认模型: {DEFAULT_MODEL}")
 _log(f"  - AIOP Gateway: {AIOP_BASE_URL} ({'已配置' if AIOP_API_KEY else '未配置'})")
 _log(f"  - Kiro Gateway: {KIRO_BASE_URL} ({'已配置' if KIRO_API_KEY else '未配置'})")
 _log(f"  - AIClient2API: {AICLIENT_BASE_URL} ({'已配置' if AICLIENT_API_KEY else '未配置'})")
+_log(f"  - Local Gateway: {LOCAL_BASE_URL} ({'已配置' if LOCAL_API_KEY else '未配置'})")
 
 
 def get_default_model(agent_name: str | None = None):
@@ -284,6 +292,36 @@ def get_aiclient_model(model: str = "claude-sonnet-4-6", callbacks: list | None 
     return llm
 
 
+def get_local_model(model: str = "llama3.2-1b", callbacks: list | None = None):
+    """获取 Local 模型（通过局域网部署的本地大模型网关）。
+    
+    Args:
+        model: 模型名称：
+            - llama3.2-1b: Llama 3.2 1B（默认）
+            - 其他本地部署的模型
+        callbacks: 回调处理器列表
+    """
+    if not LOCAL_API_KEY:
+        raise ValueError("LOCAL_API_KEY 未配置，请在 .env 文件中设置")
+    
+    if not LOCAL_BASE_URL:
+        raise ValueError("LOCAL_BASE_URL 未配置，请在 .env 文件中设置")
+    
+    # 添加日志记录器
+    if callbacks is None:
+        callbacks = []
+    callbacks.append(LLMLogger("Local"))
+    
+    llm = ChatOpenAI(
+        model=model,
+        api_key=LOCAL_API_KEY,
+        base_url=LOCAL_BASE_URL,
+        callbacks=callbacks,
+    )
+    _log(f"[LLM] 创建 Local 模型: {model}")
+    return llm
+
+
 def get_model(
     model: str | None = None,
     callbacks: list | None = None,
@@ -335,7 +373,7 @@ def get_model(
     elif len(parts) == 2:
         # 格式: provider/model 或 gateway/model
         first, second = parts
-        if first in ("aiop", "kiro", "aiclient"):
+        if first in ("aiop", "kiro", "aiclient", "local"):
             # gateway/model 格式
             gateway = first
             if gateway == "aiop":
@@ -359,5 +397,7 @@ def get_model(
         return get_kiro_model(model=full_model, callbacks=callbacks)
     elif gateway == "aiclient":
         return get_aiclient_model(model=full_model, callbacks=callbacks)
+    elif gateway == "local":
+        return get_local_model(model=full_model, callbacks=callbacks)
     else:
-        raise ValueError(f"未知的网关: {gateway}。支持的网关: aiop, kiro, aiclient")
+        raise ValueError(f"未知的网关: {gateway}。支持的网关: aiop, kiro, aiclient, local")

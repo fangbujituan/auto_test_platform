@@ -1,5 +1,4 @@
-"""
-中间件模块（整合自 ai-server）
+"""中间件模块（整合自 ai-server）
 
 提供的中间件：
 - DOMCleanerMiddleware: DOM 清理中间件
@@ -8,13 +7,25 @@
 - TokenControlMiddleware: Token 控制中间件
 - ThreadContextMiddleware: 线程上下文中间件
 - Base64FilterMiddleware: Base64 过滤中间件
-- LoggingMiddleware: 日志中间件
+- BeforeAgentMiddleware: 日志中间件
 - SelectorScores: 选择器评分工具
-
-注意：
-- 中间件模块已移植，可根据需要逐步整合
-- 依赖于主项目的现有架构
 """
 
-# 基础导入（空）
-# 后续可根据需要逐步添加中间件类的导入
+from app.utils.middleware.dom_cleaner import DOMCleanerMiddleware
+from app.utils.middleware.logging import BeforeAgentMiddleware
+from app.utils.middleware.code_collector import CodeCollectorMiddleware, get_collector, reset_collector
+from app.utils.middleware.base64_filter import Base64FilterMiddleware
+from app.utils.middleware.token_control import TokenControlMiddleware
+from app.utils.middleware.semantic_selector import SemanticSelectorMiddleware, get_semantic_selector
+
+__all__ = [
+    "DOMCleanerMiddleware",
+    "BeforeAgentMiddleware",
+    "CodeCollectorMiddleware",
+    "Base64FilterMiddleware",
+    "TokenControlMiddleware",
+    "SemanticSelectorMiddleware",
+    "get_collector",
+    "reset_collector",
+    "get_semantic_selector",
+]
