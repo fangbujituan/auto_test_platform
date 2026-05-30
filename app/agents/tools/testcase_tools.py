@@ -15,8 +15,27 @@ from langchain_core.tools import tool
 
 from app.services.testcase_generator import (
     TestCaseGenerationResult,
+    ai_chat,
     generate_test_cases,
 )
+
+
+@tool
+def ai_chat_simple(prompt: str, model: Optional[str] = None) -> str:
+    """最简单的 LLM 问答工具，用于流程验证。
+
+    用途场景：
+    - 验证整条调用链是通的（不在乎答案质量）
+    - 给外部 Agent 一个借用本平台 LLM 的口子
+    - 简单的代码 / 思路探讨
+
+    不做任何结构化约束，1+1=? 也能问，连最小的 LLM 也扛得住。
+
+    Args:
+        prompt: 用户问题
+        model: 模型标识（如 ``local/llama3.2-1b``）。不传走默认网关
+    """
+    return ai_chat(prompt=prompt, model=model)
 
 
 @tool
@@ -53,10 +72,11 @@ def ai_generate_test_cases(
 
 
 # 集中导出
-TESTCASE_TOOLS = [ai_generate_test_cases]
+TESTCASE_TOOLS = [ai_chat_simple, ai_generate_test_cases]
 
 
 __all__ = [
+    "ai_chat_simple",
     "ai_generate_test_cases",
     "TESTCASE_TOOLS",
 ]

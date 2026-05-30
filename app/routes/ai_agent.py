@@ -26,7 +26,9 @@ from marshmallow import Schema, fields, validate
 from app.agents.recording_agent import make_recording_agent
 from app.agents.ui_automation_agent import make_agent as make_ui_agent
 from app.schemas.common import MessageResponseSchema
+from app.services.case_runner import execute_cases
 from app.services.testcase_generator import (
+    ai_chat,
     generate_test_cases_with_db_prompt,
     save_generated_cases,
 )
@@ -210,10 +212,22 @@ class AgentInfoView(MethodView):
                         ],
                     },
                     {
+                        "name": "ai_chat",
+                        "endpoint": "/api/ai/agent/chat",
+                        "description": "极简 LLM 转发，问什么答什么。流程验证 / 通用问答用",
+                        "tools": ["ai_chat_simple"],
+                    },
+                    {
                         "name": "testcase_generator",
                         "endpoint": "/api/ai/agent/generate-cases",
                         "description": "AI 测试用例生成（结构化输出，覆盖正常/边界/异常）",
                         "tools": ["ai_generate_test_cases"],
+                    },
+                    {
+                        "name": "case_runner",
+                        "endpoint": "/api/ai/agent/run-cases",
+                        "description": "批量执行测试用例，失败自动建 bug（飞轮第二齿轮）",
+                        "tools": ["run_test_cases"],
                     },
                 ],
             },
@@ -222,6 +236,60 @@ class AgentInfoView(MethodView):
 
 # ============================================================================
 # 测试用例生成（飞轮起点，不依赖 Playwright/MCP，纯 LCEL，便宜且快）
+# ============================================================================
+
+class AIChatRequestSchema(Schema):
+    """极简 LLM 转发请求体（流程验证用，问什么答什么）。"""
+
+    prompt = fields.String(
+        required=True,
+        validate=validate.Length(min=1),
+        metadata={"description": "用户问题（必填）"},
+    )
+    model = fields.String(
+        load_default=None,
+        metadata={"description": "LLM 模型标识，如 local/llama3.2-1b。不传走默认网关"},
+    )
+    system = fields.String(
+        load_default=None,
+        metadata={"description": "自定义 system 提示词（可选）"},
+    )
+
+
+@ai_agent_blp.route("/chat")
+class AIChatSimpleView(MethodView):
+    """极简 LLM 转发：流程验证 / 通用问答。"""
+
+    @ai_agent_blp.arguments(AIChatRequestSchema)
+    @ai_agent_blp.response(200, MessageResponseSchema)
+    @login_required
+    def post(self, json_data):
+        """问什么答什么，不做结构化约束。用于验证 LLM 链路。"""
+        try:
+            answer = ai_chat(
+                prompt=json_data["prompt"],
+                model=json_data.get("model"),
+                system=json_data.get("system"),
+                agent_name="ai_chat_endpoint",
+            )
+        except ValueError as e:
+            return jsonify({"code": 400, "message": str(e)}), 400
+        except RuntimeError as e:
+            logs.error(f"[ai_agent] LLM 调用失败: {e}")
+            return jsonify({"code": 500, "message": str(e)}), 500
+
+        return jsonify({
+            "code": 0,
+            "message": "success",
+            "data": {
+                "answer": answer,
+                "model": json_data.get("model") or "default",
+            },
+        })
+
+
+# ============================================================================
+# 测试用例生成
 # ============================================================================
 
 class GenerateCasesRequestSchema(Schema):
@@ -307,6 +375,82 @@ class GenerateCasesView(MethodView):
                 data["save_error"] = str(e)
 
         return jsonify({"code": 0, "message": "success", "data": data})
+
+
+# ============================================================================
+# 飞轮第二齿轮：执行用例 + 失败自动建 bug
+# ============================================================================
+
+class RunCasesRequestSchema(Schema):
+    """执行用例请求体。"""
+
+    case_ids = fields.List(
+        fields.Integer(),
+        required=True,
+        validate=validate.Length(min=1),
+        metadata={"description": "待执行的用例 id 列表（test_case_management.id）"},
+    )
+    project_id = fields.Integer(
+        required=True,
+        metadata={"description": "落 bug 的项目 id"},
+    )
+    create_bug_on_failure = fields.Boolean(
+        load_default=True,
+        metadata={"description": "失败时是否自动建 bug，默认是"},
+    )
+    reporter_id = fields.Integer(
+        load_default=None,
+        metadata={"description": "自动 bug 的报告人 id（可选，未传则用当前登录用户）"},
+    )
+    environment = fields.String(
+        load_default=None,
+        metadata={"description": "测试环境名（写入 bug.environment）"},
+    )
+    version = fields.String(
+        load_default=None,
+        metadata={"description": "发现版本号（写入 bug.version）"},
+    )
+    model = fields.String(
+        load_default=None,
+        metadata={"description": "裁判 LLM 模型（如 local/llama3.2-1b）"},
+    )
+
+
+@ai_agent_blp.route("/run-cases")
+class RunCasesView(MethodView):
+    """执行测试用例，失败自动建 bug。"""
+
+    @ai_agent_blp.arguments(RunCasesRequestSchema)
+    @ai_agent_blp.response(200, MessageResponseSchema)
+    @login_required
+    def post(self, json_data):
+        """触发批量执行。"""
+        from flask import g
+
+        # 默认用当前登录用户作为 bug 的 reporter
+        reporter_id = json_data.get("reporter_id")
+        if reporter_id is None:
+            current_user = g.get("current_user")
+            if current_user:
+                reporter_id = current_user.id
+
+        try:
+            report = execute_cases(
+                case_ids=json_data["case_ids"],
+                project_id=json_data["project_id"],
+                create_bug_on_failure=json_data.get("create_bug_on_failure", True),
+                reporter_id=reporter_id,
+                environment=json_data.get("environment") or "",
+                version=json_data.get("version") or "",
+                model=json_data.get("model"),
+            )
+        except ValueError as e:
+            return jsonify({"code": 400, "message": str(e)}), 400
+        except Exception as e:
+            logs.error(f"[ai_agent] 用例执行失败: {e}")
+            return jsonify({"code": 500, "message": str(e)}), 500
+
+        return jsonify({"code": 0, "message": "success", "data": report.to_dict()})
 
 
 __all__ = ["ai_agent_blp"]

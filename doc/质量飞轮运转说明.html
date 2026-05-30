@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>质量飞轮运转说明</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 24px 80px;
+    color: #2d3748;
+    line-height: 1.7;
+    background: #fafbfc;
+  }
+  h1 { font-size: 28px; border-bottom: 3px solid #4299e1; padding-bottom: 12px; }
+  h2 { font-size: 22px; margin-top: 48px; padding-left: 12px; border-left: 4px solid #4299e1; }
+  h3 { font-size: 18px; margin-top: 28px; color: #2c5282; }
+  p { margin: 12px 0; }
+  code {
+    background: #edf2f7; color: #c53030;
+    padding: 2px 6px; border-radius: 4px;
+    font-family: "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+  }
+  .lead {
+    background: #ebf8ff;
+    border-left: 4px solid #4299e1;
+    padding: 16px 20px; margin: 20px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .note {
+    background: #fffaf0;
+    border-left: 4px solid #ed8936;
+    padding: 12px 18px; margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 14px;
+  }
+  .diagram {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  th, td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+  th { background: #4299e1; color: #fff; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) { background: #f7fafc; }
+  .stage {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; margin-right: 6px;
+  }
+  .stage-done { background: #c6f6d5; color: #22543d; }
+  .stage-todo { background: #fed7e2; color: #702459; }
+  .file { color: #4a5568; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  ul { padding-left: 24px; }
+  li { margin: 6px 0; }
+  .toc {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 24px;
+    margin: 24px 0;
+  }
+  .toc a { color: #2c5282; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .footer {
+    margin-top: 60px; padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    color: #718096; font-size: 13px;
+    text-align: center;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: true, mirrorActors: false }
+  });
+</script>
+</head>
+<body>
+
+<h1>质量飞轮运转说明</h1>
+
+<div class="lead">
+  <strong>一句话讲清楚：</strong> 我们围绕"<b>需求 → 用例 → 执行 → bug → 回归</b>"这条主线搭了一个能自转的飞轮。
+  每一步都封装成一个 service 函数，再通过<b>三个出口</b>同时暴露：
+  HTTP 给前端、LangChain <code>@tool</code> 给内部 Agent、MCP Server 给外部 IDE Agent（Cursor / Claude Code 等）。
+  <b>一份逻辑三个入口</b>是这个项目最值得理解的设计。
+</div>
+
+<div class="toc">
+  <strong>目录</strong>
+  <ul>
+    <li><a href="#section-1">1. 飞轮全景：闭环是怎么转的</a></li>
+    <li><a href="#section-2">2. 三出口架构：为什么这么设计</a></li>
+    <li><a href="#section-3">3. 第一齿轮：从需求到用例</a></li>
+    <li><a href="#section-4">4. 第二齿轮：从用例到 bug</a></li>
+    <li><a href="#section-5">5. 端到端示例：外部 Agent 触发完整闭环</a></li>
+    <li><a href="#section-6">6. 当前能力边界与后续演进</a></li>
+  </ul>
+</div>
+
+
+<h2 id="section-1">1. 飞轮全景：闭环是怎么转的</h2>
+
+<p>飞轮的目标是让"被测系统的质量持续提升"自动化。下图是闭环的高层视图。
+<b>箭头方向就是数据流方向</b>，每个节点都对应一组可独立替换的能力。</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  R[需求<br/>Requirement] --> G[用例生成<br/>testcase_generator]
+  G --> C[(test_case_management<br/>用例库)]
+  C --> X[用例执行<br/>case_runner]
+  X --> P{结果}
+  P -- passed --> S[质量数据<br/>统计/趋势]
+  P -- failed --> B[(bugs<br/>缺陷库)]
+  B --> D[开发修复]
+  D -. 新版本 .-> X
+  S -. 反馈 .-> R
+
+  classDef store fill:#fef5e7,stroke:#dd6b20,color:#7b341e
+  classDef agent fill:#ebf8ff,stroke:#3182ce,color:#1a365d
+  class C,B store
+  class G,X agent
+</pre>
+</div>
+
+<p><b>关键点：</b></p>
+<ul>
+  <li><b>用例和 bug 都落在数据库</b>（橙色方块），不是只在内存中流转。这样飞轮可以中断、可以人工介入、可以多端协作。</li>
+  <li><b>失败用例自动建 bug</b>（虚线之外这一步是自动的）。bug 的 <code>related_test_cases</code> 字段直接关联用例，<code>steps_to_reproduce</code> 抄用例的 steps —— 修复后跑回归直接拿这条 bug 关联的用例就行。</li>
+  <li><b>每个齿轮都是独立 service</b>，可以单独触发也可以串起来跑。</li>
+</ul>
+
+
+<h2 id="section-2">2. 三出口架构：为什么这么设计</h2>
+
+<p>飞轮里每一个能力（生成用例、执行用例、问答 LLM…）都同时给三种调用者用。
+<b>service 层是唯一的逻辑实现</b>，三个出口都是它的薄包装。</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  subgraph callers[" "]
+    direction LR
+    UI["前端按钮 / curl<br/>HTTP 客户端"]
+    AG["UI Agent / 录制 Agent<br/>(项目内部)"]
+    EX["Cursor / Claude Code<br/>(外部 IDE Agent)"]
+  end
+
+  subgraph ports["三个出口（薄包装层）"]
+    direction LR
+    HTTP["/api/ai/agent/*<br/>flask-smorest 蓝图"]
+    TOOL["LangChain @tool<br/>app/agents/tools/*"]
+    MCP["MCP Server tool<br/>app/mcp_server/*"]
+  end
+
+  subgraph svc["核心 service 层（唯一逻辑）"]
+    direction LR
+    GEN["testcase_generator<br/>• generate_test_cases<br/>• save_generated_cases"]
+    RUN["case_runner<br/>• AIVerdictExecutor<br/>• BugReporter<br/>• execute_cases"]
+    CHAT["ai_chat<br/>(流程验证 / 通用问答)"]
+  end
+
+  subgraph infra["共享基础设施"]
+    direction LR
+    LLM["llm_gateway<br/>(本地/AIOP/Kiro/AIClient)"]
+    DB[("MySQL<br/>用例 / bug / 项目")]
+  end
+
+  UI --> HTTP
+  AG --> TOOL
+  EX --> MCP
+
+  HTTP --> GEN
+  HTTP --> RUN
+  HTTP --> CHAT
+  TOOL --> GEN
+  TOOL --> RUN
+  TOOL --> CHAT
+  MCP  --> GEN
+  MCP  --> RUN
+  MCP  --> CHAT
+
+  GEN --> LLM
+  RUN --> LLM
+  CHAT --> LLM
+  GEN --> DB
+  RUN --> DB
+
+  classDef caller fill:#e6fffa,stroke:#319795
+  classDef port fill:#bee3f8,stroke:#2b6cb0
+  classDef service fill:#fef5e7,stroke:#dd6b20
+  classDef infra fill:#fce7f3,stroke:#b83280
+  class UI,AG,EX caller
+  class HTTP,TOOL,MCP port
+  class GEN,RUN,CHAT service
+  class LLM,DB infra
+</pre>
+</div>
+
+<p><b>这样设计的好处：</b></p>
+<ul>
+  <li><b>逻辑只写一份。</b> 加一个新能力，只要写一个 service 函数 + 在三个出口各包一层（每层 10 行），三种调用方式自动具备。</li>
+  <li><b>外部 Agent 接入零成本。</b> 同事用 Cursor 写代码时，他的 Agent 通过 MCP 直接调用我们的<code>ai_generate_and_save_test_cases</code>，
+      生成的用例自动落到我们库里。下游飞轮继续转，不需要他做任何额外集成。</li>
+  <li><b>测试只测 service。</b> 写 unit test 直接对着 service 写，不用过 Flask、不用启动 LangGraph、不用拉 MCP。</li>
+</ul>
+
+<div class="note">
+<strong>具体落点（精简版，不一一列举）：</strong><br/>
+HTTP 出口：<code class="file">app/routes/ai_agent.py</code><br/>
+@tool 出口：<code class="file">app/agents/tools/{testcase_tools, run_tools, case_tools}.py</code><br/>
+MCP 出口：<code class="file">app/mcp_server/server.py</code>，启动 <code>python -m app.mcp_server</code>
+</div>
+
+
+<h2 id="section-3">3. 第一齿轮：从需求到用例</h2>
+
+<p>把需求文本喂进去，得到一组结构化、可直接落库的测试用例。这是飞轮的<b>起点</b>，没有这一步后面都转不起来。</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  REQ["需求文本<br/>(产品文档 / 用户故事 / API 描述)"]
+  --> SVC[generate_test_cases<br/>service]
+  SVC --> LLM[llm_gateway.get_model<br/>本地或网关]
+  LLM --> P{输出是否合法<br/>JSON?}
+  P -- ✅ --> PARSE[PydanticOutputParser<br/>校验字段]
+  P -- ❌ --> RECOVER[正则抠 JSON<br/>兜底解析]
+  RECOVER --> PARSE
+  PARSE --> RES["GeneratedTestCaseList<br/>(cases[], summary)"]
+  RES -.可选.-> SAVE[save_generated_cases]
+  SAVE --> DB[(test_case_management)]
+
+  classDef agent fill:#ebf8ff,stroke:#3182ce
+  classDef store fill:#fef5e7,stroke:#dd6b20
+  class SVC,LLM agent
+  class DB store
+</pre>
+</div>
+
+<p><b>核心设计：</b></p>
+<ul>
+  <li><b>结构化输出契约</b>。LLM 输出必须能解析成 <code>GeneratedTestCaseList</code>（pydantic schema），
+      字段命名直接对齐 <code>TestCaseManagement</code> 表，可以一对一落库不用映射。</li>
+  <li><b>双解析模式自动兜底</b>。环境变量 <code>TESTCASE_GEN_MODE=structured</code> 走 OpenAI tool calling（GPT/Claude 这种大模型最稳）；
+      <code>=parser</code> 走 prompt 注入 JSON Schema（小模型友好，是默认值）。</li>
+  <li><b>Prompt 可编辑</b>。从数据库 <code>ai_prompt_templates</code> 表读，产品/测试可以在前端改提示词不需改代码。</li>
+</ul>
+
+
+<h2 id="section-4">4. 第二齿轮：从用例到 bug</h2>
+
+<p>读取一批用例 ID，依次执行。失败的用例自动写入 bug 表，bug 上自动关联回用例 ID。
+这是飞轮闭合的关键 —— <b>没有这一步，前面生成多少用例都只是文档</b>。</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  IN[case_ids + project_id] --> LOAD[查 test_case_management<br/>过滤项目和有效性]
+  LOAD --> LOOP{对每条用例}
+  LOOP --> EXEC[CaseExecutorProtocol.execute]
+
+  subgraph executors["执行器实现 (可插拔)"]
+    direction LR
+    V1["AIVerdictExecutor<br/>(v1: LLM 当裁判)"]
+    V2["PlaywrightExecutor<br/>(v2: 真浏览器)"]
+    V3["ApiExecutor<br/>(v2: 真 HTTP)"]
+  end
+  EXEC -.可替换.-> V1
+  EXEC -.可替换.-> V2
+  EXEC -.可替换.-> V3
+
+  V1 --> RESULT{status?}
+  RESULT -- passed --> COUNT[计数 +1]
+  RESULT -- failed --> BUG[BugReporter.report]
+  RESULT -- blocked --> COUNT
+  BUG --> WRITE[写 bugs 表<br/>related_test_cases=用例id<br/>steps_to_reproduce=用例steps<br/>actual_result=AI 实际观察]
+  WRITE --> DB[(bugs)]
+  COUNT --> NEXT{还有用例?}
+  WRITE --> NEXT
+  NEXT -- 是 --> LOOP
+  NEXT -- 否 --> REPORT["CaseRunReport<br/>{total, passed, failed, bug_ids, results[]}"]
+
+  classDef agent fill:#ebf8ff,stroke:#3182ce
+  classDef store fill:#fef5e7,stroke:#dd6b20
+  classDef alt fill:#f0e6ff,stroke:#6b46c1
+  class EXEC,V1,BUG agent
+  class DB store
+  class V2,V3 alt
+</pre>
+</div>
+
+<p><b>核心设计：</b></p>
+<ul>
+  <li><b>执行器是协议（Protocol），不是固定实现</b>。<code>v1</code> 用 LLM 当裁判（最便宜，零基础设施），
+      把用例的 steps + expected 喂给 LLM 让它判 pass/fail。<b>把 service 里 <code>AIVerdictExecutor</code> 换成
+      <code>PlaywrightExecutor</code> 或 <code>ApiExecutor</code> 就升级到真实执行</b>，编排逻辑零改动。</li>
+  <li><b>失败即建 bug 是默认行为</b>。reporter_id 没传则自动取一个系统用户兜底（保证飞轮不卡住）。
+      bug 优先级直接由用例优先级映射（P0→critical，P1→high，等等）。</li>
+  <li><b>结果可序列化</b>。<code>CaseRunReport.to_dict()</code> 直接返回给 HTTP / MCP，外部 Agent 拿到 bug_id 列表就能继续触发下游流程。</li>
+</ul>
+
+<div class="note">
+<strong>真实跑过的飞轮：</strong> 一次实测中 LLM 正确识别出"步骤是退出登录但预期是停留登录态"这种逻辑矛盾，
+自动建了 bug，<code>related_test_cases</code> 关联到用例，<code>actual_result</code> 写入 LLM 观察到的 "未跳转到首页并显示用户已登录的状态"。
+飞轮真转起来了。
+</div>
+
+
+<h2 id="section-5">5. 端到端示例：外部 Agent 触发完整闭环</h2>
+
+<p>假设同事在 Cursor 里写完一个新功能，他的 IDE Agent 想自动生成用例并执行回归。下面是这一次完整请求的时序。</p>
+
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant Ext as 外部 Agent<br/>(Cursor)
+  participant MCP as MCP Server<br/>(stdio 接入)
+  participant Svc as service 层
+  participant LLM as 本地 LLM<br/>(192.168.1.7)
+  participant DB as MySQL
+
+  Ext->>MCP: ai_generate_and_save_test_cases<br/>(requirement, project_id)
+  MCP->>Svc: generate_test_cases_with_db_prompt
+  Svc->>DB: 读 ai_prompt_templates
+  DB-->>Svc: 系统提示词
+  Svc->>LLM: chat completion (含 schema)
+  LLM-->>Svc: JSON 用例列表
+  Svc->>Svc: PydanticOutputParser 解析
+  Svc->>DB: INSERT test_case_management × N
+  DB-->>Svc: case_ids
+  MCP-->>Ext: {summary, saved_cases:[...]}
+
+  Note over Ext,DB: ─ 第一齿轮完成 ─
+
+  Ext->>MCP: run_test_cases<br/>(case_ids, project_id)
+  MCP->>Svc: execute_cases
+  loop 对每条用例
+    Svc->>LLM: AIVerdictExecutor.execute
+    LLM-->>Svc: {status, actual_result}
+    alt status == failed
+      Svc->>DB: INSERT bugs<br/>(related_test_cases=[id])
+      DB-->>Svc: bug_id
+    end
+  end
+  Svc-->>MCP: CaseRunReport
+  MCP-->>Ext: {total, passed, failed, bug_ids:[...]}
+
+  Note over Ext,DB: ─ 飞轮闭环完成 ─
+</pre>
+</div>
+
+<p><b>这一次调用让外部 Agent 拿到了：</b></p>
+<ul>
+  <li>新生成的用例 ID 列表（已落库）</li>
+  <li>执行结果（哪些通过、哪些失败）</li>
+  <li>失败用例对应的 bug ID 列表（可直接发给开发同事）</li>
+</ul>
+
+
+<h2 id="section-6">6. 当前能力边界与后续演进</h2>
+
+<table>
+<thead>
+<tr><th>能力</th><th>当前状态</th><th>下一步</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>测试用例生成</td>
+  <td><span class="stage stage-done">已落地</span> service / @tool / HTTP / MCP 全通</td>
+  <td>支持从 <code>requirements</code> 表批量拉取需求生成</td>
+</tr>
+<tr>
+  <td>用例自动执行 + 建 bug</td>
+  <td><span class="stage stage-done">已落地</span> 飞轮 v1：LLM 当裁判</td>
+  <td>替换为真实 Playwright / HTTP 执行器</td>
+</tr>
+<tr>
+  <td>三出口架构（HTTP / @tool / MCP）</td>
+  <td><span class="stage stage-done">已落地</span></td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>多 LLM 网关（本地 / AIOP / Kiro / AIClient）</td>
+  <td><span class="stage stage-done">已落地</span> 通过 <code>DEFAULT_MODEL</code> 切换，无硬编码</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>Docker 部署 + 配置外置</td>
+  <td><span class="stage stage-todo">未做</span></td>
+  <td>给 app + MySQL 一键 docker-compose，Ubuntu 直接跑</td>
+</tr>
+<tr>
+  <td>前端飞轮面板</td>
+  <td><span class="stage stage-todo">未做</span></td>
+  <td>"一键生成 → 一键执行 → 看 bug" 可视化</td>
+</tr>
+<tr>
+  <td>真实 UI/API 执行器</td>
+  <td><span class="stage stage-todo">未做</span></td>
+  <td>把 <code>AIVerdictExecutor</code> 替换为 Playwright / 现有 RequestFactory</td>
+</tr>
+<tr>
+  <td>失败 bug 去重 / 合并</td>
+  <td><span class="stage stage-todo">未做</span></td>
+  <td><code>BugReporter</code> 加去重策略（同标题/同关联用例不重复建）</td>
+</tr>
+<tr>
+  <td>飞轮调度（定时回归）</td>
+  <td><span class="stage stage-todo">部分</span> 已有 APScheduler 调度框架</td>
+  <td>把 <code>execute_cases</code> 接到调度器上做定时跑</td>
+</tr>
+</tbody>
+</table>
+
+
+<div class="footer">
+  最后更新：2026-05-30 &nbsp;&nbsp;|&nbsp;&nbsp; 项目：auto_test_platform
+</div>
+
+</body>
+</html>

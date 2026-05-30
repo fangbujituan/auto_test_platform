@@ -18,7 +18,9 @@ from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import FastMCP
 
+from app.services.case_runner import execute_cases
 from app.services.testcase_generator import (
+    ai_chat,
     generate_test_cases_with_db_prompt,
     save_generated_cases,
 )
@@ -48,6 +50,31 @@ def create_mcp_server(name: str = "auto-test-platform") -> FastMCP:
     def ping() -> Dict[str, Any]:
         """检查 MCP Server 是否在线。"""
         return {"status": "ok", "server": name}
+
+    # ------------------------------------------------------------------
+    # 极简 LLM 转发（流程验证 / 通用问答）
+    # ------------------------------------------------------------------
+    @mcp.tool(
+        description=(
+            "最简单的 LLM 问答工具：问什么答什么，不做结构化约束。"
+            "适用场景：流程验证（如 1+1=?）、简单代码探讨、给外部 Agent 借用本平台 LLM。"
+            "不需要数据库、不需要 Flask app context。"
+        )
+    )
+    def ai_chat_simple(
+        prompt: str,
+        model: Optional[str] = None,
+        system: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """问答转发。
+
+        Args:
+            prompt: 用户问题（必填）
+            model: LLM 模型标识，如 ``local/llama3.2-1b``
+            system: 自定义 system 提示词（可选）
+        """
+        answer = ai_chat(prompt=prompt, model=model, system=system, agent_name="mcp_chat")
+        return {"answer": answer, "model": model or "default"}
 
     # ------------------------------------------------------------------
     # 测试用例生成（不落库）
@@ -138,6 +165,41 @@ def create_mcp_server(name: str = "auto-test-platform") -> FastMCP:
             "model": result.model,
             "saved_cases": saved,
         }
+
+    # ------------------------------------------------------------------
+    # 飞轮第二齿轮：执行用例 + 失败建 bug
+    # ------------------------------------------------------------------
+    @mcp.tool(
+        description=(
+            "批量执行测试用例（按 id），失败自动建 bug 写入 bugs 表。"
+            "v1 由 LLM 当裁判判断 pass/fail；后续可替换为真实 Playwright/HTTP 执行器。"
+            "返回每条用例的执行结果与生成的 bug id，外部 Agent 可据此触发后续流转。"
+        )
+    )
+    def run_test_cases(
+        case_ids: List[int],
+        project_id: int,
+        create_bug_on_failure: bool = True,
+        reporter_id: Optional[int] = None,
+        environment: Optional[str] = None,
+        version: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """执行用例并按需建 bug。"""
+        from app import create_app
+
+        app = create_app()
+        with app.app_context():
+            report = execute_cases(
+                case_ids=case_ids,
+                project_id=project_id,
+                create_bug_on_failure=create_bug_on_failure,
+                reporter_id=reporter_id,
+                environment=environment or "",
+                version=version or "",
+                model=model,
+            )
+        return report.to_dict()
 
     return mcp
 

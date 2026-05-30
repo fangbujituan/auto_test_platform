@@ -8,8 +8,13 @@ from app.agents.tools.case_tools import (
     case_list,
     case_rename,
 )
+from app.agents.tools.run_tools import (
+    RUN_TOOLS,
+    run_test_cases,
+)
 from app.agents.tools.testcase_tools import (
     TESTCASE_TOOLS,
+    ai_chat_simple,
     ai_generate_test_cases,
 )
 
@@ -21,5 +26,8 @@ __all__ = [
     "case_rename",
     "case_list",
     "TESTCASE_TOOLS",
+    "ai_chat_simple",
     "ai_generate_test_cases",
+    "RUN_TOOLS",
+    "run_test_cases",
 ]

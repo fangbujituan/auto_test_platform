@@ -328,3 +328,57 @@ def save_generated_cases(
 
     logger.info("[testcase_generator] 已落库 %d 条用例 → project_id=%d", len(saved), project_id)
     return saved
+
+
+
+# ============================================================================
+# 极简 LLM 转发（流程级验证用）
+# ============================================================================
+
+def ai_chat(
+    prompt: str,
+    *,
+    model: Optional[str] = None,
+    system: Optional[str] = None,
+    agent_name: str = "ai_chat",
+) -> str:
+    """最简单的 LLM 转发：问什么，答什么。
+
+    用途：
+    - 流程级验证（不在乎答案质量，只验证调用链是通的）
+    - 给外部 Agent / IDE Agent 一个"借用平台 LLM"的极简入口
+    - 是 ``generate_test_cases`` 的反面教材：那个要求结构化输出，对小模型不友好；
+      这个无任何强制约束，1B 模型也扛得住
+
+    Args:
+        prompt: 用户问题
+        model: LLM 模型标识，不传走默认网关
+        system: 自定义 system 提示词（可选）
+        agent_name: token 统计名
+
+    Returns:
+        LLM 返回的纯文本
+    """
+    if not (prompt and prompt.strip()):
+        raise ValueError("prompt 不能为空")
+
+    llm = get_model(model=model, agent_name=agent_name)
+
+    messages = []
+    if system:
+        messages.append(SystemMessage(content=system))
+    messages.append(HumanMessage(content=prompt))
+
+    logger.info(
+        "[ai_chat] model=%s | prompt_len=%d",
+        model or "default",
+        len(prompt),
+    )
+
+    try:
+        response = llm.invoke(messages)
+    except Exception as e:
+        logger.error("[ai_chat] LLM 调用失败: %s", e, exc_info=True)
+        raise RuntimeError(f"LLM 调用失败: {e}") from e
+
+    return response.content if hasattr(response, "content") else str(response)
