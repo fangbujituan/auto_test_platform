@@ -485,15 +485,16 @@ class TokenCounter:
             "message": "用例创建成功"
         }
     
-    def complete_case(self, case_id: str, status: str = "completed") -> Dict:
+    def complete_case(self, case_id: str, status: str = "completed", note: str = "") -> Dict:
         """完成用例。
         
         Args:
             case_id: 用例 ID
             status: 最终状态（completed/failed）
+            note: 备注（保留兼容字段，当前未持久化，未来可加列）
         
         Returns:
-            用例完成统计
+            用例完成统计，包含 duration_seconds / message_count / summary
         """
         end_time = datetime.now().isoformat()
         
@@ -518,6 +519,18 @@ class TokenCounter:
                 row["agent_name"]
             )
         
+        # 计算耗时
+        try:
+            start = datetime.fromisoformat(row["start_time"])
+            duration_seconds = int((datetime.fromisoformat(end_time) - start).total_seconds())
+        except Exception:
+            duration_seconds = 0
+        
+        message_count = row["message_count"] if "message_count" in row.keys() else 0
+        message_count = message_count or 0
+        total_tokens = row["total_tokens"] or 0
+        status_icon = "✅" if status == "completed" else "❌"
+        
         return {
             "success": True,
             "case_id": case_id,
@@ -525,10 +538,177 @@ class TokenCounter:
             "status": status,
             "start_time": row["start_time"],
             "end_time": end_time,
-            "total_tokens": row["total_tokens"] or 0,
+            "duration_seconds": duration_seconds,
+            "message_count": message_count,
+            "total_tokens": total_tokens,
             "input_tokens": row["input_tokens"] or 0,
             "output_tokens": row["output_tokens"] or 0,
             "estimated_cost_cny": round(cost, 4),
+            "note": note,
+            "summary": (
+                f"{status_icon} 用例完成\n"
+                f"📊 总消耗: {total_tokens:,} tokens\n"
+                f"⏱️ 耗时: {self._format_duration(duration_seconds)}\n"
+                f"💰 费用: ¥{round(cost, 4)}\n"
+                f"🔄 对话轮次: {message_count}"
+            ),
+        }
+    
+    def get_case_current_stats(self, case_id: str) -> Dict:
+        """获取用例的当前统计（供 AI 在每轮回复后展示给用户）。
+        
+        Args:
+            case_id: 用例 ID
+        
+        Returns:
+            包含 summary 文本的统计字典
+        """
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute("SELECT * FROM case_usage WHERE id = ?", (case_id,))
+            row = cursor.fetchone()
+            
+            if not row:
+                return {"success": False, "error": "用例不存在"}
+            
+            # 当前消息（最近一条 token 记录）
+            cursor = conn.execute("""
+                SELECT total_tokens FROM token_records
+                WHERE case_id = ?
+                ORDER BY timestamp DESC LIMIT 1
+            """, (case_id,))
+            last = cursor.fetchone()
+            current_tokens = (last["total_tokens"] if last else 0) or 0
+            
+            try:
+                start = datetime.fromisoformat(row["start_time"])
+                duration_seconds = int((datetime.now() - start).total_seconds())
+            except Exception:
+                duration_seconds = 0
+            
+            cost = self._calculate_case_cost(
+                row["input_tokens"] or 0,
+                row["output_tokens"] or 0,
+                row["agent_name"],
+            )
+            case_total = row["total_tokens"] or 0
+            
+            return {
+                "success": True,
+                "case_id": case_id,
+                "name": row["name"],
+                "status": row["status"],
+                "duration_seconds": duration_seconds,
+                "message_count": row["message_count"] or 0,
+                "current_message_tokens": current_tokens,
+                "case_total_tokens": case_total,
+                "case_input_tokens": row["input_tokens"] or 0,
+                "case_output_tokens": row["output_tokens"] or 0,
+                "estimated_cost_cny": round(cost, 4),
+                "summary": (
+                    f"📊 本次消耗: {current_tokens:,} tokens\n"
+                    f"📋 用例总计: {case_total:,} tokens\n"
+                    f"💰 预估费用: ¥{round(cost, 4)}"
+                ),
+            }
+    
+    def update_case_name(self, case_id: str, name: str) -> Dict:
+        """更新用例名称。"""
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "UPDATE case_usage SET name = ? WHERE id = ?",
+                (name, case_id),
+            )
+            conn.commit()
+            if cursor.rowcount == 0:
+                return {"success": False, "error": "用例不存在"}
+        
+        return {
+            "success": True,
+            "case_id": case_id,
+            "name": name,
+            "message": "用例名称更新成功",
+        }
+    
+    def get_cases(
+        self,
+        status: Optional[str] = None,
+        agent: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Dict:
+        """获取用例列表（用于 case_list 工具/前端展示）。"""
+        page_size = min(page_size, 100)
+        offset = (page - 1) * page_size
+        
+        conditions = []
+        params: list = []
+        if status:
+            conditions.append("status = ?")
+            params.append(status)
+        if agent:
+            conditions.append("agent_name = ?")
+            params.append(agent)
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            
+            cursor = conn.execute(
+                f"SELECT COUNT(*) as total FROM case_usage WHERE {where_clause}",
+                params,
+            )
+            total = cursor.fetchone()["total"]
+            
+            cursor = conn.execute(
+                f"""
+                SELECT id, name, agent_name, status, start_time, end_time,
+                       total_tokens, input_tokens, output_tokens, message_count
+                FROM case_usage
+                WHERE {where_clause}
+                ORDER BY start_time DESC
+                LIMIT ? OFFSET ?
+                """,
+                params + [page_size, offset],
+            )
+            
+            cases = []
+            now = datetime.now()
+            for row in cursor.fetchall():
+                duration = 0
+                try:
+                    start = datetime.fromisoformat(row["start_time"])
+                    if row["end_time"]:
+                        duration = int((datetime.fromisoformat(row["end_time"]) - start).total_seconds())
+                    elif row["status"] == "active":
+                        duration = int((now - start).total_seconds())
+                except Exception:
+                    pass
+                
+                cost = self._calculate_case_cost(
+                    row["input_tokens"] or 0,
+                    row["output_tokens"] or 0,
+                    row["agent_name"],
+                )
+                
+                cases.append({
+                    "id": row["id"],
+                    "name": row["name"],
+                    "agent_name": row["agent_name"],
+                    "status": row["status"],
+                    "start_time": row["start_time"],
+                    "end_time": row["end_time"],
+                    "duration_seconds": duration,
+                    "total_tokens": row["total_tokens"] or 0,
+                    "message_count": row["message_count"] or 0,
+                    "estimated_cost_cny": round(cost, 4),
+                })
+        
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "cases": cases,
         }
     
     def _calculate_case_cost(self, input_tokens: int, output_tokens: int, agent_name: str) -> float:
@@ -537,6 +717,19 @@ class TokenCounter:
         input_cost = (input_tokens / 1000) * rate["input"]
         output_cost = (output_tokens / 1000) * rate["output"]
         return input_cost + output_cost
+    
+    @staticmethod
+    def _format_duration(seconds: int) -> str:
+        """把秒数格式化为人类可读形式。"""
+        seconds = int(seconds or 0)
+        if seconds < 60:
+            return f"{seconds}秒"
+        if seconds < 3600:
+            m, s = divmod(seconds, 60)
+            return f"{m}分{s}秒"
+        h, rem = divmod(seconds, 3600)
+        m = rem // 60
+        return f"{h}小时{m}分"
     
     def get_global_overview(self, period: str = "today") -> Dict:
         """获取全局概览统计。

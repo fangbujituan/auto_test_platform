@@ -141,6 +141,7 @@ def create_app(config_name=None):
     from app.routes.ai_provider import ai_provider_blp
     from app.routes.ai_chat import ai_chat_blp
     from app.routes.ai_prompt import ai_prompt_blp
+    from app.routes.ai_agent import ai_agent_blp
     from app.routes.env_variable import env_variable_blp
     from app.routes.environment import (
         environment_blp, prefix_url_blp,
@@ -171,6 +172,7 @@ def create_app(config_name=None):
     api.register_blueprint(ai_provider_blp)
     api.register_blueprint(ai_chat_blp)
     api.register_blueprint(ai_prompt_blp)
+    api.register_blueprint(ai_agent_blp)
     api.register_blueprint(env_variable_blp)
     api.register_blueprint(environment_blp)
     api.register_blueprint(prefix_url_blp)

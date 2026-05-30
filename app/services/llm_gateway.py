@@ -303,13 +303,21 @@ def get_local_model(
         callbacks = []
     callbacks.append(LLMLogger("Local"))
     
+    # 局域网内的本地 LLM 必须绕开系统/环境代理，否则会被 macOS 系统代理拦截导致超时
+    # （httpx 默认 trust_env=True 会读取 macOS Network → Proxies 配置）
+    import httpx as _httpx
+    sync_client = _httpx.Client(trust_env=False, timeout=120.0)
+    async_client = _httpx.AsyncClient(trust_env=False, timeout=120.0)
+    
     llm = ChatOpenAI(
         model=model,
         api_key=LOCAL_API_KEY,
         base_url=LOCAL_BASE_URL,
         callbacks=callbacks,
+        http_client=sync_client,
+        http_async_client=async_client,
     )
-    logs.info(f"[LLM] 创建 Local 模型: {model}")
+    logs.info(f"[LLM] 创建 Local 模型: {model}（已禁用系统代理）")
     return llm
 
 

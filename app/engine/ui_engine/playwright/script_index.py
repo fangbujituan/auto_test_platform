@@ -8,6 +8,7 @@ Playwright脚本索引管理器
 """
 
 import json
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -22,12 +23,17 @@ class ScriptIndexManager:
         初始化索引管理器.
         
         Args:
-            db_path: SQLite数据库路径，默认使用工作区根目录下的 identifier.sqlite
+            db_path: SQLite 数据库路径。默认从环境变量 ``UI_ENGINE_SCRIPT_INDEX_DB``
+                读取，未设置时使用 ``<project>/data/script_index.sqlite``。
         """
         if db_path is None:
-            # 使用工作区根目录下的 identifier.sqlite
-            workspace_root = Path(__file__).parent.parent.parent.parent
-            db_path = str(workspace_root / "ai-server" / "identifier.sqlite")
+            db_path = os.getenv("UI_ENGINE_SCRIPT_INDEX_DB", "")
+        if not db_path:
+            # 默认使用项目根目录下的 data/ 子目录（与 token_stats.db 同处）
+            project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+            data_dir = project_root / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            db_path = str(data_dir / "script_index.sqlite")
         
         self.db_path = db_path
         self._init_database()

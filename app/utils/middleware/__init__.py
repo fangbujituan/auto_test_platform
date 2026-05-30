@@ -17,6 +17,7 @@ from app.utils.middleware.code_collector import CodeCollectorMiddleware, get_col
 from app.utils.middleware.base64_filter import Base64FilterMiddleware
 from app.utils.middleware.token_control import TokenControlMiddleware
 from app.utils.middleware.semantic_selector import SemanticSelectorMiddleware, get_semantic_selector
+from app.utils.middleware.thread_context import ThreadContextMiddleware
 
 __all__ = [
     "DOMCleanerMiddleware",
@@ -25,6 +26,7 @@ __all__ = [
     "Base64FilterMiddleware",
     "TokenControlMiddleware",
     "SemanticSelectorMiddleware",
+    "ThreadContextMiddleware",
     "get_collector",
     "reset_collector",
     "get_semantic_selector",

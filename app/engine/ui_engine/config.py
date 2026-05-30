@@ -32,9 +32,13 @@ class UIAutomationConfig:
     default_timeout: int = int(os.getenv("UI_ENGINE_DEFAULT_TIMEOUT", "30000"))  # 30秒
     
     # 目录配置
+    scripts_dir: str = os.getenv("UI_ENGINE_SCRIPTS_DIR", "/playwright_scripts/tests")  # 测试脚本目录（虚拟路径）
     results_dir: str = os.getenv("UI_ENGINE_RESULTS_DIR", "/playwright_results")  # 测试结果目录（虚拟路径）
     reports_dir: str = os.getenv("UI_ENGINE_REPORTS_DIR", "/playwright_reports")  # HTML报告目录（虚拟路径）
     base64_images_dir: str = os.getenv("UI_ENGINE_BASE64_IMAGES_DIR", "/base64_images")  # base64图片保存目录（虚拟路径）
+
+    # 导航超时（毫秒）
+    navigation_timeout: int = int(os.getenv("UI_ENGINE_NAVIGATION_TIMEOUT", "120000"))
     
     # MCP 相关配置
     chrome_mcp_url: str = os.getenv("UI_ENGINE_CHROME_MCP_URL", "http://127.0.0.1:12306/mcp")
