@@ -1,15 +1,15 @@
 """
-LLM 桥接层。
+LLM 桥接层（旧版兼容入口）。
 
-把项目现有的 AIService（自定义多提供商适配器）封装成一个简单的
-`call_llm(messages) -> str` 函数，供 agents 内部调用。
-
-为什么需要这一层？
-- LangGraph 本身不关心"调用哪个大模型"，它只负责编排流程。
-- 我们项目已经有一套成熟的 AIService（OpenAI / 通义千问 / Ollama），
-  没必要再引入 langchain 的 LLM 封装，直接复用即可。
-- 同时提供一个 MockLLM，让 demo 在没有配置任何 AI 提供商、
-  甚至没装好数据库的情况下也能直接跑起来，方便学习 LangGraph 本身。
+> 历史模块：原本位于 ``app/agents/llm_bridge.py``，2026-06 整合时迁入
+> ``app/agents/llm/bridge.py`` 与 ``DBChatModel`` 同居。
+>
+> ``call_real_llm()`` 的功能已被 :class:`app.agents.llm.DBChatModel` 完全
+> 覆盖，新代码请直接用 ``DBChatModel().invoke(...)``。这里保留是为了让
+> 老的 demo / 手册示例继续可跑。
+>
+> ``MockLLM`` 仍然有保留价值——零依赖、可以让 LangGraph 教学 demo
+> 在没有数据库 / AI 提供商的环境下立刻跑起来。
 
 作者: yandc
 """

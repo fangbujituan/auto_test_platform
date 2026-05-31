@@ -28,19 +28,63 @@ LangGraph 的三个核心概念（看完这个文件你就懂了）：
 
 ==============================================================================
 运行方式：
-    # 零配置直接跑（用内置 MockLLM，不需要数据库 / AI 提供商）
+
+    # 1) 零配置直接跑（用内置 MockLLM，不需要数据库 / AI 提供商）
     python -m app.agents.testcase_agent_demo
+
+    # 2) 接真实大模型（走数据库里 is_default=True 的提供商）
+    python -m app.agents.testcase_agent_demo --real
 
 作者: yandc
 """
 from __future__ import annotations
 
+import argparse
 import json
-from typing import TypedDict
+import re
+from typing import Callable, TypedDict
 
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import END, START, StateGraph
 
-from app.agents.llm_bridge import mock_llm
+from app.agents.llm import mock_llm
+
+# 类型别名：一次"对话调用"，输入 messages，返回模型文本回复
+LLMCallable = Callable[[list[dict]], str]
+
+
+def _extract_json(text: str) -> dict:
+    """从模型输出里抽出第一个 JSON 对象。
+
+    1B 这种小模型经常在 JSON 前后塞解释性文字，直接 ``json.loads`` 会炸。
+    这里允许有"前导/后缀文本"，找到第一个 ``{`` 到最后一个 ``}`` 之间的片段
+    再解析。失败时返回空 dict 而不是抛错，避免 demo 因为模型一次抽风就挂掉。
+    """
+    # 优先尝试最严格的解析（理想情况）
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return {}
+    try:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return {}
+
+
+# ----------------------------------------------------------------------
+# 0. LLM 槽位 —— 节点通过这个间接量调用模型，便于 mock / 真实切换
+# ----------------------------------------------------------------------
+# 默认是 MockLLM，``run_demo`` 可以通过参数注入 ``DBChatModel`` 这种
+# 真实模型。节点函数本身只调用 ``_call_llm`` 不感知后端。
+_LLM: LLMCallable = mock_llm
+
+
+def _call_llm(messages: list[dict]) -> str:
+    """统一调用入口：模板节点都走这条路，便于切换 LLM 实现。"""
+    return _LLM(messages)
 
 
 # ----------------------------------------------------------------------
@@ -71,7 +115,13 @@ def generate_node(state: AgentState) -> dict:
     print(f"\n🟦 [生成节点] 第 {attempt} 次生成测试用例...")
 
     # 拼接 prompt：如果上一轮有反馈，就带上，引导模型改进
-    user_prompt = f"请为以下需求生成测试用例。\n需求：{state['requirement']}"
+    user_prompt = (
+        f"请为以下需求生成 1-2 条简短的测试用例，输出 JSON：\n"
+        f"需求：{state['requirement']}\n\n"
+        '严格按以下 JSON 格式输出，不要额外文字：\n'
+        '{"cases":[{"title":"...","precondition":"...","steps":["..."],'
+        '"expected":"...","priority":"P0"}]}'
+    )
     if state.get("feedback"):
         user_prompt += f"\n\n上一轮评审反馈（请据此改进）：{state['feedback']}"
 
@@ -80,10 +130,14 @@ def generate_node(state: AgentState) -> dict:
         {"role": "user", "content": user_prompt},
     ]
 
-    # 调用 LLM（demo 用 mock_llm；接真实模型见文件末尾说明）
-    raw = mock_llm(messages)
-    cases = json.loads(raw).get("cases", [])
-    print(f"   生成了 {len(cases)} 条用例：{[c['title'] for c in cases]}")
+    # 调用 LLM（demo 默认 mock_llm；通过 run_demo(llm=...) 注入真实模型）
+    raw = _call_llm(messages)
+    parsed = _extract_json(raw)
+    cases = parsed.get("cases", [])
+    if not cases:
+        print(f"   ⚠️  模型输出未包含可解析的 cases，原始响应前 200 字: {raw[:200]!r}")
+    else:
+        print(f"   生成了 {len(cases)} 条用例：{[c.get('title', '?') for c in cases]}")
 
     # 返回要更新到 state 的字段
     return {"cases": cases, "attempts": attempt}
@@ -101,8 +155,15 @@ def review_node(state: AgentState) -> dict:
         {"role": "user", "content": f"请评审以下测试用例的完整性：\n{cases_text}"},
     ]
 
-    raw = mock_llm(messages)
-    review = json.loads(raw)
+    raw = _call_llm(messages)
+    review = _extract_json(raw)
+    if not review:
+        # 模型输出无法解析时不阻塞流程：判为"未通过 + 给个通用反馈"
+        review = {
+            "score": 0,
+            "passed": False,
+            "feedback": "模型评审输出无法解析为 JSON，请补全边界与异常用例。",
+        }
     passed = review.get("passed", False)
     print(f"   评审得分 {review.get('score')}，"
           f"{'✅ 通过' if passed else '❌ 不通过'}：{review.get('feedback')}")
@@ -175,60 +236,126 @@ def build_graph():
 # ----------------------------------------------------------------------
 # 5. 对外入口：跑一次完整流程
 # ----------------------------------------------------------------------
-def run_demo(requirement: str = "用户登录功能", max_attempts: int = 3) -> dict:
+def run_demo(
+    requirement: str = "用户登录功能",
+    max_attempts: int = 3,
+    llm: LLMCallable | None = None,
+) -> dict:
     """
     运行测试用例生成 agent，返回最终状态。
 
     Args:
         requirement: 需求描述
         max_attempts: 最大重试次数
+        llm: 可选的 LLM 调用器，签名 ``(messages: list[dict]) -> str``。
+             不传则使用模块默认的 ``mock_llm``。
 
     Returns:
         最终的 AgentState（dict）
     """
-    app_graph = build_graph()
+    global _LLM
+    previous_llm = _LLM
+    if llm is not None:
+        _LLM = llm
+    try:
+        app_graph = build_graph()
 
-    # 初始状态
-    initial_state: AgentState = {
-        "requirement": requirement,
-        "cases": [],
-        "review_passed": False,
-        "feedback": "",
-        "attempts": 0,
-        "max_attempts": max_attempts,
-    }
+        # 初始状态
+        initial_state: AgentState = {
+            "requirement": requirement,
+            "cases": [],
+            "review_passed": False,
+            "feedback": "",
+            "attempts": 0,
+            "max_attempts": max_attempts,
+        }
 
-    # invoke 会从 START 一路执行到 END，期间自动在节点间流转 state
-    final_state = app_graph.invoke(initial_state)
-    return final_state
+        # invoke 会从 START 一路执行到 END，期间自动在节点间流转 state
+        return app_graph.invoke(initial_state)
+    finally:
+        _LLM = previous_llm
+
+
+def _make_db_chat_callable() -> LLMCallable:
+    """把 ``DBChatModel`` 包成 ``LLMCallable``：吃 messages 列表，吐文本。
+
+    数据库里的 prompt 我们这一步先不接（demo 的 prompt 是写死在节点里的），
+    后续接库内 prompt 时再用 ``app.agents.prompts.render_messages``。
+    """
+    from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+    from app.agents.llm import DBChatModel
+
+    chat_model = DBChatModel(
+        # 1B 小模型在 60s 默认超时下完成 2048 token 太勉强，
+        # demo 实际产出只有几条 JSON 用例，600 完全够。
+        max_tokens=600,
+        temperature=0.3,
+    )
+
+    def _call(messages: list[dict]) -> str:
+        # 把 [{role, content}] 转成 LangChain BaseMessage 列表
+        cls_map = {"system": SystemMessage, "user": HumanMessage, "assistant": AIMessage}
+        lc_messages = [
+            cls_map.get(m["role"], HumanMessage)(content=m["content"]) for m in messages
+        ]
+        return chat_model.invoke(lc_messages).content
+
+    return _call
+
+
+def _run_with_real_llm(requirement: str, max_attempts: int) -> dict:
+    """在 Flask app context 内用 DBChatModel 跑一次。"""
+    # 延迟导入，避免 mock 模式仍然必须装好 Flask / DB
+    from app.flask_app import create_app
+
+    app = create_app()
+    with app.app_context():
+        llm = _make_db_chat_callable()
+        return run_demo(requirement=requirement, max_attempts=max_attempts, llm=llm)
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="LangGraph 测试用例生成 demo")
+    parser.add_argument(
+        "--real",
+        action="store_true",
+        help="使用数据库里默认的 AI 提供商（DBChatModel）而不是 MockLLM",
+    )
+    parser.add_argument(
+        "--requirement",
+        default="用户登录功能",
+        help="需求描述（默认：用户登录功能）",
+    )
+    parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=3,
+        help="评审循环最大次数（默认 3）",
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
-    print("LangGraph Demo：测试用例生成 Agent（带评审循环）")
+    title = "LangGraph Demo：测试用例生成 Agent（带评审循环）"
+    if args.real:
+        title += "  [DBChatModel · 真实模型]"
+    else:
+        title += "  [MockLLM · 零配置]"
+    print(title)
     print("=" * 60)
 
-    result = run_demo(requirement="用户登录功能")
+    if args.real:
+        result = _run_with_real_llm(args.requirement, args.max_attempts)
+    else:
+        result = run_demo(args.requirement, args.max_attempts)
 
     print("\n" + "=" * 60)
     print("✅ 流程结束，最终产出：")
     print("=" * 60)
     print(f"需求：{result['requirement']}")
-    print(f"共尝试 {result['attempts']} 次，评审"
-          f"{'通过' if result['review_passed'] else '未通过'}")
+    print(
+        f"共尝试 {result['attempts']} 次，评审"
+        f"{'通过' if result['review_passed'] else '未通过'}"
+    )
     print(f"最终用例（{len(result['cases'])} 条）：")
     print(json.dumps(result["cases"], ensure_ascii=False, indent=2))
-
-    # ------------------------------------------------------------------
-    # 想接真实大模型？把 testcase_agent_demo 里的 mock_llm 换成：
-    #
-    #     from app.agents.llm_bridge import call_real_llm
-    #     raw = call_real_llm(messages)
-    #
-    # 并在 Flask app context 内运行（因为要查数据库取 AI 提供商配置）：
-    #
-    #     from app.flask_app import create_app
-    #     app = create_app()
-    #     with app.app_context():
-    #         run_demo("用户登录功能")
-    # ------------------------------------------------------------------

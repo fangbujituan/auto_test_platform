@@ -7,12 +7,27 @@
 
     <!-- 对话窗口 -->
     <transition name="chat-slide">
-      <div v-show="visible" class="ai-chat-panel">
+      <div
+        v-show="visible"
+        class="ai-chat-panel"
+        :class="{ 'is-fullscreen': fullscreen }"
+        :style="fullscreen ? fullscreenStyle : null"
+      >
         <div class="chat-header">
           <span class="chat-title">AI 助手</span>
           <div class="chat-header-actions">
             <el-button text size="small" @click="clearMessages" title="清空对话">
               <el-icon><Delete /></el-icon>
+            </el-button>
+            <el-button
+              text
+              size="small"
+              @click="toggleFullscreen"
+              :title="fullscreen ? '退出全屏' : '全屏'"
+            >
+              <el-icon>
+                <component :is="fullscreen ? 'ScaleToOriginal' : 'FullScreen'" />
+              </el-icon>
             </el-button>
             <el-button text size="small" @click="visible = false" title="关闭">
               <el-icon><Close /></el-icon>
@@ -82,8 +97,11 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
-import { ChatDotRound, Close, Delete, MagicStick, UserFilled, Promotion } from '@element-plus/icons-vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import {
+  ChatDotRound, Close, Delete, MagicStick, UserFilled, Promotion,
+  FullScreen, ScaleToOriginal,
+} from '@element-plus/icons-vue'
 import { chat } from '../api/ai'
 
 const visible = ref(false)
@@ -91,6 +109,43 @@ const inputText = ref('')
 const messages = ref([])
 const loading = ref(false)
 const messagesRef = ref(null)
+
+// 全屏状态：开启时面板用 fixed 定位铺满中间内容区，
+// 但不覆盖 MainLayout 里的 .app-header 和 .footer
+const fullscreen = ref(false)
+const headerHeight = ref(60)  // .app-header 默认高
+const footerHeight = ref(40)  // .footer 默认高（按需重测）
+
+const fullscreenStyle = computed(() => ({
+  top: `${headerHeight.value}px`,
+  bottom: `${footerHeight.value}px`,
+}))
+
+const measureChrome = () => {
+  // 实时测量页头页尾高度，避免响应式布局或主题改动后写死的数值失效
+  const header = document.querySelector('.app-header')
+  const footer = document.querySelector('.main-layout .footer')
+  if (header) headerHeight.value = header.getBoundingClientRect().height
+  if (footer) footerHeight.value = footer.getBoundingClientRect().height
+}
+
+const toggleFullscreen = () => {
+  fullscreen.value = !fullscreen.value
+  if (fullscreen.value) measureChrome()
+  scrollToBottom()
+}
+
+const onWindowResize = () => {
+  if (fullscreen.value) measureChrome()
+}
+
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize)
+})
 
 const toggleChat = () => {
   visible.value = !visible.value
@@ -205,6 +260,21 @@ const renderContent = (text) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* 全屏：钉在视口里，但避开顶部 app-header 和底部 footer
+   top / bottom 由组件根据真实 DOM 高度算出来注入到内联 style */
+.ai-chat-panel.is-fullscreen {
+  position: fixed;
+  top: 60px;     /* 兜底值，会被内联 style 覆盖 */
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+  z-index: 9998;
 }
 
 /* 头部 */

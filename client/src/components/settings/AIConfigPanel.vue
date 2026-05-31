@@ -104,7 +104,28 @@
         :model="providerForm"
         :rules="providerRules"
         label-width="100px"
+        autocomplete="off"
       >
+        <!-- 防止浏览器把后面的 API Key 输入识别为登录密码：
+             加一对一像素级隐藏的假账号 / 密码字段诱导浏览器自动填充到这里，
+             保护真正的 API Key 输入框不弹"保存密码""使用已保存密码"提示。 -->
+        <input
+          type="text"
+          name="fake_username_for_chrome"
+          autocomplete="username"
+          tabindex="-1"
+          aria-hidden="true"
+          class="autofill-decoy"
+        />
+        <input
+          type="password"
+          name="fake_password_for_chrome"
+          autocomplete="new-password"
+          tabindex="-1"
+          aria-hidden="true"
+          class="autofill-decoy"
+        />
+
         <el-form-item label="名称" prop="name">
           <el-input v-model="providerForm.name" placeholder="请输入配置名称" />
         </el-form-item>
@@ -116,12 +137,27 @@
           </el-select>
         </el-form-item>
         <el-form-item label="API Key" prop="api_key">
+          <!--
+            说明：原本用 type=password + show-password，但浏览器会把它当成登录字段
+            弹出"保存密码"/自动填充。这里改成 type=text + CSS text-security 模拟
+            掩码，并通过 autocomplete=new-password 与上方诱饵字段彻底抑制弹窗。
+          -->
           <el-input
             v-model="providerForm.api_key"
-            type="password"
-            show-password
+            type="text"
+            :class="{ 'masked-input': !showApiKey }"
             :placeholder="isEditProvider ? '留空则不修改' : '请输入 API Key（Ollama 可为空）'"
-          />
+            autocomplete="new-password"
+            spellcheck="false"
+            name="ai_provider_secret"
+          >
+            <template #suffix>
+              <el-icon class="api-key-eye" @click="showApiKey = !showApiKey">
+                <View v-if="showApiKey" />
+                <Hide v-else />
+              </el-icon>
+            </template>
+          </el-input>
         </el-form-item>
         <el-form-item label="Base URL" prop="base_url">
           <el-input v-model="providerForm.base_url" placeholder="如 https://api.openai.com" />
@@ -207,7 +243,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, View, Hide } from '@element-plus/icons-vue'
 import {
   getProviders, createProvider, updateProvider, deleteProvider,
   testProvider, testProviderUnsaved, setDefaultProvider,
@@ -216,6 +252,8 @@ import {
 
 // ==================== 通用 ====================
 const activeTab = ref('providers')
+// API Key 输入框的"显示明文 / 隐藏密文"切换状态
+const showApiKey = ref(false)
 
 const providerTypeMap = {
   openai: 'OpenAI 兼容',
@@ -564,5 +602,40 @@ onMounted(() => {
 
 .test-result.fail {
   color: #f56c6c;
+}
+
+/* ==================== API Key 输入框反密码弹窗方案 ====================
+   思路：
+   1. el-input 用 type=text，避免被浏览器识别为登录密码输入；
+   2. 通过 -webkit-text-security: disc 把字符渲染成圆点，视觉上等同于密码框；
+   3. 上方一对 .autofill-decoy 假字段诱导浏览器把"保存的密码"塞到那里；
+   4. autocomplete=new-password 进一步抑制 Chrome 的自动填充与"保存密码"提示。
+============================================================= */
+.autofill-decoy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.masked-input :deep(.el-input__inner) {
+  /* 浏览器层面是 text，但视觉上仍然是圆点 */
+  -webkit-text-security: disc;
+  text-security: disc;
+  font-family: 'caption';
+  letter-spacing: 1px;
+}
+
+.api-key-eye {
+  cursor: pointer;
+  color: var(--el-text-color-secondary);
+  transition: color 0.2s;
+}
+
+.api-key-eye:hover {
+  color: var(--el-color-primary);
 }
 </style>
