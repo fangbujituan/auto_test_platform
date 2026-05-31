@@ -1,8 +1,12 @@
 """
-Agent 结构化输出 Schema。
+LLM 结构化输出契约（Pydantic）。
 
 把 LLM 返回的 JSON 强制对齐到 Pydantic 模型，避免 "AI 自由发挥" 导致下游
-落库失败。每个 Agent 的输出都应该有一个对应的 Schema。
+落库失败。这些 schema 是 service / @tool / MCP 三个出口都在用的**业务数据契约**，
+所以放在 services 包里——agents 只是消费者之一。
+
+> 注意：这里和 ``app.schemas`` 不是一回事。后者是 marshmallow（HTTP I/O 校验），
+> 这里是 pydantic（LLM 输出契约）。两者各司其职，不要混用。
 
 设计原则：
 1. 字段命名与数据库 model 一致（``TestCaseManagement``、``Bug``），方便直接落库

@@ -28,7 +28,7 @@ from langchain_core.exceptions import OutputParserException
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import PydanticOutputParser
 
-from app.agents.schemas import AIVerdict, CaseExecutionResult, ExecutionStatus
+from app.services.schemas import AIVerdict, CaseExecutionResult, ExecutionStatus
 from app.services.llm_gateway import get_model
 
 logger = logging.getLogger(__name__)

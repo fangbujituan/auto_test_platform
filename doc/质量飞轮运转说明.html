@@ -82,6 +82,42 @@
     color: #718096; font-size: 13px;
     text-align: center;
   }
+  pre.code {
+    background: #1a202c; color: #e2e8f0;
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    margin: 12px 0;
+  }
+  pre.code .kw { color: #f6ad55; }
+  pre.code .str { color: #9ae6b4; }
+  pre.code .com { color: #718096; font-style: italic; }
+  pre.code .fn { color: #63b3ed; }
+  .vs-table th { background: #2c5282; }
+  .vs-table td.left { background: #ebf8ff; }
+  .vs-table td.right { background: #fffaf0; }
+  .tabs {
+    display: flex; gap: 4px;
+    margin: 16px 0 0 0;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .tab {
+    padding: 8px 16px;
+    background: #edf2f7;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    border-bottom: none;
+  }
+  .tab.active { background: #4299e1; color: #fff; border-color: #4299e1; }
+  .panel { display: none; padding: 16px 0; }
+  .panel.active { display: block; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script>
@@ -109,10 +145,12 @@
   <ul>
     <li><a href="#section-1">1. 飞轮全景：闭环是怎么转的</a></li>
     <li><a href="#section-2">2. 三出口架构：为什么这么设计</a></li>
-    <li><a href="#section-3">3. 第一齿轮：从需求到用例</a></li>
-    <li><a href="#section-4">4. 第二齿轮：从用例到 bug</a></li>
-    <li><a href="#section-5">5. 端到端示例：外部 Agent 触发完整闭环</a></li>
-    <li><a href="#section-6">6. 当前能力边界与后续演进</a></li>
+    <li><a href="#section-3">3. 三出口实战：同一个能力的三种入口</a></li>
+    <li><a href="#section-4">4. service vs agent：别再搞混</a></li>
+    <li><a href="#section-5">5. 第一齿轮：从需求到用例</a></li>
+    <li><a href="#section-6">6. 第二齿轮：从用例到 bug</a></li>
+    <li><a href="#section-7">7. 端到端示例：外部 Agent 触发完整闭环</a></li>
+    <li><a href="#section-8">8. 当前能力边界与后续演进</a></li>
   </ul>
 </div>
 
@@ -232,7 +270,403 @@ MCP 出口：<code class="file">app/mcp_server/server.py</code>，启动 <code>p
 </div>
 
 
-<h2 id="section-3">3. 第一齿轮：从需求到用例</h2>
+<h2 id="section-3">3. 三出口实战：同一个能力的三种入口</h2>
+
+<p>下面用<b>批量执行用例（执行 + 失败建 bug）</b>这个能力做例子。它在三个出口里都有完整实现，
+最能看清差别。<b>共同的"地基"</b>是 <code class="file">app/services/case_runner.py::execute_cases</code> —— 业务逻辑只这一份，三层都往上接。</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph A["出口 A：HTTP（前端）"]
+    BR[浏览器<br/>axios] --> RT[/POST /api/ai/agent/run-cases/]
+  end
+  subgraph B["出口 B：LangChain @tool（内部 Agent）"]
+    UA[UI Agent / 录制 Agent] --> LL[LLM 决策循环]
+    LL --> TL["@tool run_test_cases"]
+  end
+  subgraph C["出口 C：MCP（外部 IDE Agent）"]
+    EX[Cursor / Claude Code] --> ST[stdio / SSE 通道]
+    ST --> MT["@mcp.tool run_test_cases"]
+  end
+
+  RT --> CORE[execute_cases<br/>service]
+  TL --> CORE
+  MT --> CORE
+  CORE --> LLM[LLM 网关]
+  CORE --> DB[(MySQL<br/>test_case + bugs)]
+
+  classDef port fill:#bee3f8,stroke:#2b6cb0
+  classDef svc fill:#fef5e7,stroke:#dd6b20
+  class RT,TL,MT port
+  class CORE svc
+</pre>
+</div>
+
+<h3>例 1 — HTTP 路由（给前端按钮用）</h3>
+<p><span class="file">app/routes/ai_agent.py::RunCasesView</span></p>
+<pre class="code"><span class="kw">@</span>ai_agent_blp.route(<span class="str">"/run-cases"</span>)
+<span class="kw">class</span> <span class="fn">RunCasesView</span>(MethodView):
+    <span class="kw">@</span>ai_agent_blp.arguments(RunCasesRequestSchema)
+    <span class="kw">@</span>ai_agent_blp.response(<span class="str">200</span>, MessageResponseSchema)
+    <span class="kw">@</span>login_required
+    <span class="kw">def</span> <span class="fn">post</span>(self, json_data):
+        <span class="kw">from</span> flask <span class="kw">import</span> g
+        reporter_id = json_data.get(<span class="str">"reporter_id"</span>)
+        <span class="kw">if</span> reporter_id <span class="kw">is None</span>:
+            current_user = g.get(<span class="str">"current_user"</span>)
+            <span class="kw">if</span> current_user:
+                reporter_id = current_user.id
+
+        report = <span class="fn">execute_cases</span>(                <span class="com"># ← 共享 service</span>
+            case_ids=json_data[<span class="str">"case_ids"</span>],
+            project_id=json_data[<span class="str">"project_id"</span>],
+            create_bug_on_failure=json_data.get(<span class="str">"create_bug_on_failure"</span>, <span class="kw">True</span>),
+            reporter_id=reporter_id,
+            environment=json_data.get(<span class="str">"environment"</span>) <span class="kw">or</span> <span class="str">""</span>,
+            version=json_data.get(<span class="str">"version"</span>) <span class="kw">or</span> <span class="str">""</span>,
+            model=json_data.get(<span class="str">"model"</span>),
+        )
+        <span class="kw">return</span> jsonify({<span class="str">"code"</span>: <span class="str">0</span>, <span class="str">"message"</span>: <span class="str">"success"</span>, <span class="str">"data"</span>: report.to_dict()})</pre>
+
+<p><b>调用链：</b></p>
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant U as 浏览器
+  participant F as Flask 主进程
+  participant S as execute_cases
+  participant L as LLM
+  participant D as MySQL
+
+  U->>F: POST /api/ai/agent/run-cases<br/>(Cookie/Token + JSON)
+  F->>F: @login_required → g.current_user
+  F->>F: marshmallow schema 校验
+  F->>S: 直接调用（已在 app context）
+  loop 每条用例
+    S->>L: AI 裁判
+    L-->>S: pass/fail
+    opt failed
+      S->>D: INSERT bugs
+    end
+  end
+  S-->>F: CaseRunReport
+  F-->>U: JSON {code, message, data}
+</pre>
+</div>
+
+<p><b>特点：</b> 入口已经在 Flask app context 里，<b>不用 <code>create_app()</code></b>；鉴权由装饰器搞定；schema 校验自动出 Swagger 文档。</p>
+
+
+<h3>例 2 — LangChain @tool（给内部 Agent 用）</h3>
+<p><span class="file">app/agents/tools/run_tools.py::run_test_cases</span></p>
+<pre class="code"><span class="kw">@tool</span>
+<span class="kw">def</span> <span class="fn">run_test_cases</span>(
+    case_ids: List[int],
+    project_id: int,
+    create_bug_on_failure: bool = <span class="kw">True</span>,
+    reporter_id: Optional[int] = <span class="kw">None</span>,
+    environment: Optional[str] = <span class="kw">None</span>,
+    version: Optional[str] = <span class="kw">None</span>,
+    model: Optional[str] = <span class="kw">None</span>,
+) -> dict:
+    <span class="str">"""执行一批测试用例，失败自动建 bug。
+
+    用例由 LLM 当裁判判断 pass/fail（飞轮 v1 实现）。失败用例会自动写入
+    bugs 表，并把 related_test_cases 关联回用例 id。
+
+    Args:
+        case_ids: 待执行的用例 id 列表（test_case_management.id）
+        project_id: 落 bug 的项目 id
+        ...
+    """</span>
+    <span class="kw">from</span> app <span class="kw">import</span> create_app
+    app = <span class="fn">create_app</span>()                       <span class="com"># ← 自己拉 app context</span>
+    <span class="kw">with</span> app.app_context():
+        report = <span class="fn">execute_cases</span>(              <span class="com"># ← 共享 service</span>
+            case_ids=case_ids,
+            project_id=project_id,
+            create_bug_on_failure=create_bug_on_failure,
+            reporter_id=reporter_id,
+            environment=environment <span class="kw">or</span> <span class="str">""</span>,
+            version=version <span class="kw">or</span> <span class="str">""</span>,
+            model=model,
+        )
+    <span class="kw">return</span> report.to_dict()</pre>
+
+<p><b>谁会调它？</b> 内部的 Agent，比如 UI Automation Agent：</p>
+<pre class="code">agent = <span class="fn">create_react_agent</span>(llm, tools=[..., run_test_cases, ...])</pre>
+
+<p><b>调用链：</b></p>
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant Code as 业务编排代码
+  participant Agent as LangGraph<br/>ReAct 循环
+  participant LLM as 内部 LLM
+  participant Tool as @tool run_test_cases
+  participant Svc as execute_cases
+
+  Code->>Agent: invoke(messages)
+  loop ReAct 循环
+    Agent->>LLM: 当前上下文 + 工具 schema
+    LLM-->>Agent: tool_call: run_test_cases(args)
+    Note right of LLM: docstring + 类型注解<br/>自动转成 OpenAI fn schema
+    Agent->>Tool: invoke(args)
+    Tool->>Tool: create_app() + app_context()
+    Tool->>Svc: execute_cases(...)
+    Svc-->>Tool: CaseRunReport
+    Tool-->>Agent: report.to_dict()
+    Agent->>LLM: tool_result
+    LLM-->>Agent: (继续推理 / 终止)
+  end
+  Agent-->>Code: 最终回答
+</pre>
+</div>
+
+<p><b>特点：</b> <b>没有 HTTP 协议</b>，纯 Python 函数级调用；调用方是 LLM，<b>docstring 写得好不好直接决定能不能被正确调用</b>；
+没有外部上下文，<b>自己 <code>create_app()</code></b>。</p>
+
+
+<h3>例 3 — MCP Server（给外部 IDE Agent 用）</h3>
+<p><span class="file">app/mcp_server/server.py</span></p>
+<pre class="code"><span class="kw">@</span>mcp.tool(
+    description=(
+        <span class="str">"批量执行测试用例（按 id），失败自动建 bug 写入 bugs 表。"</span>
+        <span class="str">"v1 由 LLM 当裁判判断 pass/fail；后续可替换为真实 Playwright/HTTP 执行器。"</span>
+        <span class="str">"返回每条用例的执行结果与生成的 bug id，外部 Agent 可据此触发后续流转。"</span>
+    )
+)
+<span class="kw">def</span> <span class="fn">run_test_cases</span>(
+    case_ids: List[int],
+    project_id: int,
+    create_bug_on_failure: bool = <span class="kw">True</span>,
+    reporter_id: Optional[int] = <span class="kw">None</span>,
+    environment: Optional[str] = <span class="kw">None</span>,
+    version: Optional[str] = <span class="kw">None</span>,
+    model: Optional[str] = <span class="kw">None</span>,
+) -> Dict[str, Any]:
+    <span class="kw">from</span> app <span class="kw">import</span> create_app
+    app = <span class="fn">create_app</span>()
+    <span class="kw">with</span> app.app_context():
+        report = <span class="fn">execute_cases</span>(              <span class="com"># ← 还是同一个 service</span>
+            case_ids=case_ids,
+            project_id=project_id,
+            create_bug_on_failure=create_bug_on_failure,
+            reporter_id=reporter_id,
+            environment=environment <span class="kw">or</span> <span class="str">""</span>,
+            version=version <span class="kw">or</span> <span class="str">""</span>,
+            model=model,
+        )
+    <span class="kw">return</span> report.to_dict()</pre>
+
+<p><b>调用链（以 Cursor + stdio 模式为例）：</b></p>
+<div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+  participant U as 用户
+  participant Cursor as Cursor 主进程
+  participant LLM as Cursor 内置 LLM
+  participant MCP as python -m app.mcp_server<br/>(Cursor fork 的子进程)
+  participant Svc as execute_cases
+
+  U->>Cursor: "把项目 1 的用例 12,13,14 跑一遍"
+  Note over Cursor,MCP: 会话开始时 Cursor 已通过<br/>tools/list 拿到所有 tool 的<br/>description + 参数 schema
+  Cursor->>LLM: 用户消息 + 可用工具列表
+  LLM-->>Cursor: tool_call: run_test_cases<br/>{case_ids:[12,13,14], project_id:1}
+  Cursor->>MCP: stdin: JSON-RPC tools/call
+  MCP->>MCP: create_app() + app_context()
+  MCP->>Svc: execute_cases(...)
+  Svc-->>MCP: CaseRunReport
+  MCP-->>Cursor: stdout: JSON-RPC response
+  Cursor->>LLM: tool_result
+  LLM-->>Cursor: 自然语言总结
+  Cursor-->>U: "已执行 3 条，2 条通过，1 条失败已建 bug #42"
+</pre>
+</div>
+
+<p><b>SSE / HTTP 模式部署到服务器</b>时，链路里 stdio 那段替换成网络调用：</p>
+<pre class="code"><span class="com"># 服务器上跑（systemd 守护）</span>
+python -m app.mcp_server --transport sse --host 0.0.0.0 --port 7800
+
+<span class="com"># 远程 Agent 通过 https://your-server:7800/sse 接入</span></pre>
+
+<p><b>特点：</b> 入口是 <b>MCP 协议（基于 JSON-RPC）</b>，传输 stdio 或 SSE 二选一；调用方是<b>外部</b> LLM，
+得自己加鉴权（Bearer Token / API Key）；tool description 同时是给 LLM 的提示词，<b>用中文写得详细且准确</b>很重要。</p>
+
+
+<h3>三层对比一张表</h3>
+<table>
+<thead>
+<tr><th>维度</th><th>HTTP 路由</th><th>LangChain @tool</th><th>MCP tool</th></tr>
+</thead>
+<tbody>
+<tr><td><b>入口</b></td><td>Flask 主进程</td><td>Python 函数（被 LangGraph 调）</td><td><code>python -m app.mcp_server</code> 独立进程</td></tr>
+<tr><td><b>协议</b></td><td>HTTP/JSON + Cookie</td><td>进程内函数调用</td><td>MCP（JSON-RPC），stdio / SSE</td></tr>
+<tr><td><b>调用方</b></td><td>浏览器 / curl / 其它服务</td><td>平台内部 LLM Agent</td><td>外部 IDE Agent / 第三方服务</td></tr>
+<tr><td><b>Schema 来源</b></td><td>marshmallow（手写）</td><td>docstring + 类型注解（自动）</td><td>description + 类型注解（自动）</td></tr>
+<tr><td><b>鉴权</b></td><td><code>@login_required</code> + Cookie</td><td>无（信任内部）</td><td>自己加（Bearer / 白名单）</td></tr>
+<tr><td><b>Flask app context</b></td><td>已有，不用管</td><td>自己 <code>create_app()</code></td><td>自己 <code>create_app()</code></td></tr>
+<tr><td><b>部署形态</b></td><td>跟 Flask 主进程跑</td><td>跟调用它的 worker 跑</td><td>systemd / Docker 单独跑</td></tr>
+<tr><td colspan="4"><b>共同点：</b>三个最终都走到同一个 <code>execute_cases()</code>，业务逻辑只一份。</td></tr>
+</tbody>
+</table>
+
+
+<h2 id="section-4">4. service vs agent：别再搞混</h2>
+
+<div class="lead">
+  <strong>一句话区分：</strong> <b>service 是被调用的，agent 是会自己决定调谁的。</b>
+</div>
+
+<table class="vs-table">
+<thead>
+<tr><th>维度</th><th>service</th><th>agent</th></tr>
+</thead>
+<tbody>
+<tr><td><b>控制权</b></td><td class="left">调用方决定做什么、传什么参</td><td class="right">LLM 自己决定下一步调哪个工具</td></tr>
+<tr><td><b>是否有 LLM 决策循环</b></td><td class="left">内部可能用 LLM，但<b>只用一次</b>（如生成用例）</td><td class="right"><b>多轮循环</b>：LLM → tool → LLM → tool …直到任务完成</td></tr>
+<tr><td><b>入参</b></td><td class="left">函数签名固定，参数清晰</td><td class="right">通常是一段自然语言 + messages 历史</td></tr>
+<tr><td><b>是否持有 tool</b></td><td class="left">自己就是被装载的工具</td><td class="right">持有一组 tool，自己挑用</td></tr>
+<tr><td><b>行为可预测性</b></td><td class="left">确定性高（同样输入同样输出）</td><td class="right">同样输入可能走不同路径</td></tr>
+<tr><td><b>测试方式</b></td><td class="left">单元测试函数</td><td class="right">集成测试整条 ReAct 循环</td></tr>
+<tr><td><b>典型代码</b></td><td class="left"><code>app/services/case_runner.py::execute_cases</code></td><td class="right"><code>app/agents/ui_automation_agent.py::make_agent</code></td></tr>
+</tbody>
+</table>
+
+<h3>放到这个项目里看</h3>
+
+<p><b><code>execute_cases</code> 是 service：</b></p>
+<ul>
+  <li>你给它 <code>case_ids=[12,13,14]</code>，它就严格按这个顺序跑这三条。</li>
+  <li>它内部确实调了 LLM（<code>AIVerdictExecutor</code>），但只是<b>把 LLM 当确定性函数用</b> —— 输入用例步骤，输出 <code>passed / failed</code>。</li>
+  <li>不会出现"LLM 觉得应该先查一下数据库再决定"这种事。</li>
+</ul>
+
+<p><b><code>ui_automation_agent</code> 是 agent：</b></p>
+<ul>
+  <li>你给它一段话："登录系统，点击订单，截图给我"。</li>
+  <li>它装载了 Playwright MCP + Chart MCP 一堆工具。</li>
+  <li>LLM 自己决定先调 <code>browser_navigate</code>，看到结果再决定调 <code>browser_click</code>，<b>整个流程是 LLM 临场编排的</b>。</li>
+  <li>失败了它会自己重试、换路径。</li>
+</ul>
+
+<h3>两者关系：agent 用 service，不是平级</h3>
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+  AGENT["agent（决策大脑）<br/>create_react_agent / create_deep_agent<br/>有 LLM 循环"]
+  TOOL["@tool 包装层<br/>把 service 包成 LLM 能调用的工具"]
+  SERVICE["service（执行肌肉）<br/>execute_cases / generate_test_cases<br/>干一件确定的事"]
+  INFRA[("基础设施<br/>DB / LLM 网关 / 第三方")]
+
+  AGENT -->|装载| TOOL
+  TOOL -->|调用| SERVICE
+  SERVICE -->|读写| INFRA
+
+  classDef agent fill:#fce7f3,stroke:#b83280
+  classDef port fill:#bee3f8,stroke:#2b6cb0
+  classDef svc fill:#fef5e7,stroke:#dd6b20
+  classDef infra fill:#e6fffa,stroke:#319795
+  class AGENT agent
+  class TOOL port
+  class SERVICE svc
+  class INFRA infra
+</pre>
+</div>
+
+<div class="note">
+<strong>项目里目录命名容易让人混淆，注意：</strong>
+<ul>
+  <li><code class="file">app/agents/tools/*.py</code> 里的东西<b>实际是 service 的薄包装</b>（带 <code>@tool</code> 装饰器），
+      它们本身不是 agent，是<b>给 agent 用的工具</b>。</li>
+  <li><code class="file">app/agents/ui_automation_agent.py</code>、<code class="file">app/agents/recording_agent.py</code> 这种才是<b>真正的 agent</b>。</li>
+  <li><b>简单判断法</b>：有没有 <code>create_react_agent</code> / <code>create_deep_agent</code> / LangGraph 这种循环编排？
+      <b>有就是 agent，没有就是 service</b>。</li>
+</ul>
+</div>
+
+<h3>项目目录与依赖方向</h3>
+
+<p>三个出口在文件层面是<b>完全隔离的</b>，互不混用：</p>
+
+<pre class="code">app/
+├── mcp_server/              <span class="com"># MCP 出口（独立 python -m 入口）</span>
+│   ├── __main__.py          <span class="com"># python -m app.mcp_server</span>
+│   └── server.py            <span class="com"># FastMCP 工具注册</span>
+│
+├── agents/                  <span class="com"># Agent（LLM 决策大脑）</span>
+│   ├── ui_automation_agent.py    <span class="com"># 真正的 agent</span>
+│   ├── recording_agent.py        <span class="com"># 真正的 agent</span>
+│   ├── testcase_agent_demo.py
+│   ├── prompts/                  <span class="com"># agent 用的提示词</span>
+│   ├── tools/                    <span class="com"># @tool 包装层（service → LangChain tool）</span>
+│   │   ├── testcase_tools.py
+│   │   ├── run_tools.py
+│   │   └── case_tools.py
+│   └── llm_bridge.py
+│
+└── services/                <span class="com"># service（确定性业务逻辑）</span>
+    ├── case_runner.py
+    ├── testcase_generator.py
+    ├── llm_gateway.py
+    ├── schemas.py           <span class="com"># pydantic LLM 输出契约（三出口共享）</span>
+    └── ...</pre>
+
+<p><b>依赖方向遵循"高层依赖低层"的分层原则</b>：</p>
+
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph H["高层（出口）"]
+    direction TB
+    MCP[mcp_server]
+    AG[agents]
+  end
+  subgraph L["低层（业务）"]
+    SVC[services]
+  end
+  subgraph B["底座"]
+    direction TB
+    SCH[services.schemas<br/>pydantic LLM 契约]
+    INFRA["llm_gateway · models · utils"]
+  end
+
+  MCP --> SVC
+  AG --> SVC
+  SVC --> SCH
+  SVC --> INFRA
+
+  classDef high fill:#bee3f8,stroke:#2b6cb0
+  classDef svc fill:#fef5e7,stroke:#dd6b20
+  classDef base fill:#e6fffa,stroke:#319795
+  class MCP,AG high
+  class SVC svc
+  class SCH,INFRA base
+</pre>
+</div>
+
+<p><b>关键约束（已校验）：</b></p>
+<ul>
+  <li><code>services/</code> <b>不依赖</b> <code>agents/</code> 也<b>不依赖</b> <code>mcp_server/</code>。
+      可以单独抽出来跑、单独单测。</li>
+  <li><code>agents/</code> 和 <code>mcp_server/</code> 互不依赖。两个出口彼此独立，
+      MCP 关掉不影响内部 Agent，反之亦然。</li>
+  <li>LLM 输出契约（<code>GeneratedTestCase</code> / <code>AIVerdict</code> 等）放在
+      <code class="file">app/services/schemas.py</code>，是三个出口的共享数据契约。</li>
+</ul>
+
+<div class="note">
+<strong>两个 schemas 别搞混：</strong>
+<ul>
+  <li><code class="file">app/schemas/</code> ── <b>marshmallow</b>，用于 HTTP API 入参出参校验 + 自动生成 Swagger。</li>
+  <li><code class="file">app/services/schemas.py</code> ── <b>pydantic</b>，用于 LLM 结构化输出契约。</li>
+</ul>
+新增 HTTP API schema 放前者，新增 LLM 输出契约放后者。
+</div>
+
+
+<h2 id="section-5">5. 第一齿轮：从需求到用例</h2>
 
 <p>把需求文本喂进去，得到一组结构化、可直接落库的测试用例。这是飞轮的<b>起点</b>，没有这一步后面都转不起来。</p>
 
@@ -267,7 +701,7 @@ flowchart LR
 </ul>
 
 
-<h2 id="section-4">4. 第二齿轮：从用例到 bug</h2>
+<h2 id="section-6">6. 第二齿轮：从用例到 bug</h2>
 
 <p>读取一批用例 ID，依次执行。失败的用例自动写入 bug 表，bug 上自动关联回用例 ID。
 这是飞轮闭合的关键 —— <b>没有这一步，前面生成多少用例都只是文档</b>。</p>
@@ -326,7 +760,7 @@ flowchart TB
 </div>
 
 
-<h2 id="section-5">5. 端到端示例：外部 Agent 触发完整闭环</h2>
+<h2 id="section-7">7. 端到端示例：外部 Agent 触发完整闭环</h2>
 
 <p>假设同事在 Cursor 里写完一个新功能，他的 IDE Agent 想自动生成用例并执行回归。下面是这一次完整请求的时序。</p>
 
@@ -378,7 +812,7 @@ sequenceDiagram
 </ul>
 
 
-<h2 id="section-6">6. 当前能力边界与后续演进</h2>
+<h2 id="section-8">8. 当前能力边界与后续演进</h2>
 
 <table>
 <thead>
@@ -435,7 +869,7 @@ sequenceDiagram
 
 
 <div class="footer">
-  最后更新：2026-05-30 &nbsp;&nbsp;|&nbsp;&nbsp; 项目：auto_test_platform
+  最后更新：2026-05-31 &nbsp;&nbsp;|&nbsp;&nbsp; 项目：auto_test_platform
 </div>
 
 </body>
