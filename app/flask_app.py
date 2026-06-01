@@ -155,6 +155,7 @@ def create_app(config_name=None):
     from app.routes.webhook import webhook_blp
     from app.routes.execution_history import execution_history_blp
     from app.routes.agent_workflow import agent_workflow_blp
+    from app.routes.quality_dashboard import quality_dashboard_blp
 
     api.register_blueprint(auth_blp)
     api.register_blueprint(project_blp)
@@ -188,6 +189,7 @@ def create_app(config_name=None):
     api.register_blueprint(webhook_blp)
     api.register_blueprint(execution_history_blp)
     api.register_blueprint(agent_workflow_blp)
+    api.register_blueprint(quality_dashboard_blp)
 
     # 创建数据表
     with app.app_context():

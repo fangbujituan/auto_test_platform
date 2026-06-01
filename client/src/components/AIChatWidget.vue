@@ -26,7 +26,7 @@
               :title="fullscreen ? '退出全屏' : '全屏'"
             >
               <el-icon>
-                <component :is="fullscreen ? 'ScaleToOriginal' : 'FullScreen'" />
+                <component :is="fullscreen ? ScaleToOriginal : FullScreen" />
               </el-icon>
             </el-button>
             <el-button text size="small" @click="visible = false" title="关闭">

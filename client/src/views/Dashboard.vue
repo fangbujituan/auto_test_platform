@@ -42,6 +42,26 @@
       </div>
     </div>
 
+    <!-- 测试执行趋势图（V0.1）-->
+    <el-card shadow="never" class="trend-card">
+      <template #header>
+        <div class="card-header">
+          <span>测试执行趋势（最近 30 天）</span>
+          <el-radio-group v-model="trendRange" size="small" @change="loadTrend">
+            <el-radio-button :value="7">近 7 天</el-radio-button>
+            <el-radio-button :value="30">近 30 天</el-radio-button>
+            <el-radio-button :value="90">近 90 天</el-radio-button>
+          </el-radio-group>
+        </div>
+      </template>
+      <div ref="trendChartRef" class="trend-chart" v-loading="trendLoading"></div>
+      <el-empty
+        v-if="!trendLoading && trendIsEmpty"
+        description="该时间范围内暂无执行数据"
+        :image-size="80"
+      />
+    </el-card>
+
     <!-- 图表和列表区 -->
     <el-row :gutter="20" class="content-row">
       <!-- 最近执行记录 -->
@@ -152,9 +172,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
 import {
   Folder,
   FolderOpened,
@@ -167,7 +188,7 @@ import {
   Warning
 } from '@element-plus/icons-vue'
 import { logout } from '../api/auth'
-import { getDashboardStats } from '../api/dashboard'
+import { getDashboardStats, getExecutionTrend } from '../api/dashboard'
 import MainLayout from '../components/MainLayout.vue'
 
 const router = useRouter()
@@ -199,12 +220,125 @@ const recentResults = ref([])
 // 项目列表
 const projects = ref([])
 
+// ===== 测试执行趋势图 =====
+const trendChartRef = ref(null)
+const trendLoading = ref(false)
+const trendRange = ref(30)        // 默认近 30 天
+const trendData = ref([])         // 来自 /api/dashboard/quality/execution/trend
+let trendChart = null             // ECharts 实例
+
+// 趋势数据是否为空（所有日期 total 都是 0）
+const trendIsEmpty = computed(() =>
+  trendData.value.length === 0 ||
+  trendData.value.every(d => d.total === 0)
+)
+
+const buildTrendOption = () => ({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['通过率(%)', '失败率(%)', '执行总数'], top: 0 },
+  grid: { left: 50, right: 60, top: 40, bottom: 30 },
+  xAxis: {
+    type: 'category',
+    data: trendData.value.map(d => d.date.slice(5)),  // 只保留 MM-DD
+    boundaryGap: false,
+  },
+  yAxis: [
+    {
+      type: 'value',
+      name: '比率(%)',
+      max: 100,
+      min: 0,
+      axisLabel: { formatter: '{value}%' },
+    },
+    {
+      type: 'value',
+      name: '执行数',
+      min: 0,
+      axisLabel: { formatter: '{value}' },
+    },
+  ],
+  series: [
+    {
+      name: '通过率(%)',
+      type: 'line',
+      smooth: true,
+      data: trendData.value.map(d => d.pass_rate),  // null 时折线断开
+      itemStyle: { color: '#67c23a' },
+      connectNulls: false,
+    },
+    {
+      name: '失败率(%)',
+      type: 'line',
+      smooth: true,
+      data: trendData.value.map(d => d.fail_rate),
+      itemStyle: { color: '#f56c6c' },
+      connectNulls: false,
+    },
+    {
+      name: '执行总数',
+      type: 'bar',
+      yAxisIndex: 1,
+      data: trendData.value.map(d => d.total),
+      itemStyle: { color: 'rgba(64, 158, 255, 0.5)' },
+      barWidth: '40%',
+    },
+  ],
+})
+
+// 拉取趋势数据 + 渲染
+const loadTrend = async () => {
+  trendLoading.value = true
+  try {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(end.getDate() - trendRange.value + 1)
+    const fmt = d => d.toISOString().slice(0, 10)
+
+    const res = await getExecutionTrend({
+      start_date: fmt(start),
+      end_date: fmt(end),
+    })
+    if (res.code === 0 && res.data) {
+      trendData.value = res.data.items || []
+      await nextTick()
+      if (!trendChart && trendChartRef.value) {
+        trendChart = echarts.init(trendChartRef.value)
+      }
+      if (trendChart) {
+        trendChart.setOption(buildTrendOption(), true)
+        trendChart.resize()
+      }
+    } else {
+      ElMessage.warning(res.message || '加载趋势数据失败')
+    }
+  } catch (e) {
+    ElMessage.error('加载趋势数据失败：' + (e.message || '网络错误'))
+  } finally {
+    trendLoading.value = false
+  }
+}
+
+// 窗口尺寸变化时重绘图表
+const onWindowResize = () => {
+  if (trendChart) trendChart.resize()
+}
+
 // 初始化
 onMounted(() => {
   username.value = localStorage.getItem('username') || '用户'
   updateTime()
   setInterval(updateTime, 1000)
   loadDashboardData()
+  loadTrend()
+  window.addEventListener('resize', onWindowResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize)
+  if (trendChart) {
+    trendChart.dispose()
+    trendChart = null
+  }
 })
 
 // 更新时间
@@ -485,6 +619,16 @@ const exportData = () => {
 /* 内容区 */
 .content-row {
   margin-bottom: 20px;
+}
+
+/* 趋势图卡片 */
+.trend-card {
+  margin-bottom: 20px;
+}
+
+.trend-chart {
+  width: 100%;
+  height: 320px;
 }
 
 .card-header {
