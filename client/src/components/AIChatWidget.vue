@@ -39,7 +39,11 @@
           <div v-if="messages.length === 0" class="chat-empty">
             <el-icon :size="40" color="#c0c4cc"><ChatDotRound /></el-icon>
             <p>你好，我是 AI 助手</p>
-            <p class="chat-empty-hint">有什么可以帮你的？</p>
+            <p class="chat-empty-hint">日常问答 ✦ 测试用例生成 ✦ 都能帮你</p>
+            <div class="chat-empty-tips">
+              <span class="tip-tag">试试：</span>
+              <span class="tip-example">"帮我生成登录功能的测试用例"</span>
+            </div>
           </div>
           <div
             v-for="(msg, idx) in messages"
@@ -98,17 +102,28 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   ChatDotRound, Close, Delete, MagicStick, UserFilled, Promotion,
   FullScreen, ScaleToOriginal,
 } from '@element-plus/icons-vue'
-import { chat } from '../api/ai'
+import { chat, runTestcaseGenerationWorkflow } from '../api/ai'
+import { detectIntent, IntentKind, formatWorkflowResult } from '../utils/agentIntent'
 
 const visible = ref(false)
 const inputText = ref('')
 const messages = ref([])
 const loading = ref(false)
 const messagesRef = ref(null)
+const route = useRoute()
+
+// 从当前路由动态读 projectId（项目详情类路由都形如 /project/:projectId/...）
+// 没拿到就传 undefined，后端会自动走 mock 模式（避免空 project 报错）
+const currentProjectId = computed(() => {
+  const raw = route.params.projectId
+  const num = parseInt(raw)
+  return Number.isFinite(num) ? num : undefined
+})
 
 // 全屏状态：开启时面板用 fixed 定位铺满中间内容区，
 // 但不覆盖 MainLayout 里的 .app-header 和 .footer
@@ -167,12 +182,33 @@ const sendMessage = async () => {
   inputText.value = ''
   scrollToBottom()
 
-  const apiMessages = messages.value.map(m => ({
-    role: m.role,
-    content: m.content
-  }))
-
   loading.value = true
+  try {
+    // 第一步：本地零 token 意图分流
+    const intent = detectIntent(text)
+
+    if (intent.kind === IntentKind.TESTCASE_GENERATION) {
+      await handleAgentWorkflow(text, intent)
+    } else {
+      await handleGeneralChat()
+    }
+  } finally {
+    loading.value = false
+    scrollToBottom()
+  }
+}
+
+/**
+ * 通用对话路径：直接走 /api/ai/chat，把整段对话历史回传。
+ *
+ * 注意：只把 user 消息 + 真实成功的 assistant 回复传给 LLM，
+ * 之前因网络/超时产生的"请求失败：xxx"占位消息要剔掉，
+ * 否则 LLM 会把它们当成上下文从而"模仿"出重复对话的奇怪回复。
+ */
+const handleGeneralChat = async () => {
+  const apiMessages = messages.value
+    .filter(m => !(m.role === 'assistant' && m._isError))
+    .map(m => ({ role: m.role, content: m.content }))
   try {
     const res = await chat({ messages: apiMessages })
     if (res.code === 0 && res.data) {
@@ -183,17 +219,66 @@ const sendMessage = async () => {
     } else {
       messages.value.push({
         role: 'assistant',
-        content: `抱歉，出错了：${res.message || '未知错误'}`
+        content: `抱歉，出错了：${res.message || '未知错误'}`,
+        _isError: true,
       })
     }
   } catch (err) {
     messages.value.push({
       role: 'assistant',
-      content: `请求失败：${err.message || '网络错误'}`
+      content: `请求失败：${err.message || '网络错误'}`,
+      _isError: true,
     })
-  } finally {
-    loading.value = false
-    scrollToBottom()
+  }
+}
+
+/**
+ * Agent 工作流路径：调 /api/agent/workflow/testcase-generation，
+ * 拿到结构化结果后渲染成 markdown 提示。
+ *
+ * - 命中 RUN_NOW 关键词："跑测试 / 执行用例" 之类 → 执行链路全开
+ * - 否则默认 skip_result=true，只生成 + 落库不执行（更安全，避免误触发）
+ * - 没拿到 projectId 时只能跑 mock，会提示用户去项目详情页用
+ */
+const handleAgentWorkflow = async (requirement, intent) => {
+  const projectId = currentProjectId.value
+  const isMock = !projectId
+
+  // 给用户一个提示性的"加载占位"消息，让他知道在跑工作流
+  const placeholderIdx = messages.value.length
+  messages.value.push({
+    role: 'assistant',
+    content: isMock
+      ? '🔍 检测到测试需求，但当前不在项目详情页面，将以演示模式（mock）跑一遍流程……'
+      : `🔍 检测到测试需求，正在跑「测试用例生成」工作流（项目 ID = ${projectId}）……`
+  })
+  scrollToBottom()
+
+  try {
+    const res = await runTestcaseGenerationWorkflow({
+      requirement,
+      project_id: projectId,
+      mock: isMock,
+      mock_review: true,        // 审核闸暂走 mock，前端审核 UI 后续再接
+      skip_result: !intent.runNow,  // 默认只生成不执行
+    })
+
+    if (res.code === 0 && res.data) {
+      messages.value[placeholderIdx] = {
+        role: 'assistant',
+        content: formatWorkflowResult(res.data)
+      }
+    } else {
+      messages.value[placeholderIdx] = {
+        role: 'assistant',
+        content: `❌ 工作流执行失败：${res.message || '未知错误'}`
+      }
+    }
+  } catch (err) {
+    messages.value[placeholderIdx] = {
+      role: 'assistant',
+      content: `❌ 请求失败：${err.message || '网络错误'}`
+    }
   }
 }
 
@@ -210,8 +295,21 @@ const clearMessages = () => {
 }
 
 const renderContent = (text) => {
-  // 简单的换行处理
-  return text.replace(/\n/g, '<br>')
+  if (!text) return ''
+  // 极简 markdown 渲染：加粗 + 行内代码 + 链接 + 换行
+  // 不引入第三方 markdown 库，保持组件轻量
+  let html = text
+    // 转义 HTML 特殊字符
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // 加粗 **xxx**
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    // 行内代码 `xxx`
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // 换行
+    .replace(/\n/g, '<br>')
+  return html
 }
 </script>
 
@@ -332,6 +430,27 @@ const renderContent = (text) => {
   color: var(--el-text-color-placeholder);
 }
 
+.chat-empty-tips {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--el-color-primary-light-9);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  max-width: 280px;
+  text-align: left;
+}
+
+.chat-empty-tips .tip-tag {
+  color: var(--el-color-primary);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.chat-empty-tips .tip-example {
+  font-style: italic;
+}
+
 /* 单条消息 */
 .chat-message {
   display: flex;
@@ -390,6 +509,21 @@ const renderContent = (text) => {
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
   border-bottom-left-radius: 4px;
+}
+
+/* assistant 消息内的轻量 markdown 样式 */
+.chat-message.assistant .message-text :deep(strong) {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.chat-message.assistant .message-text :deep(code) {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
 }
 
 /* 打字指示器 */

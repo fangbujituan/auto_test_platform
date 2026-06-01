@@ -71,12 +71,18 @@ export function setDefaultProvider(id) {
 
 // ==================== 对话接口 ====================
 
+// LLM 类接口默认超时（毫秒）
+// 全局 axios 是 10s，但 LLM 推理 + agent 工作流可能需要更久，单独放宽。
+const LLM_CHAT_TIMEOUT_MS = 300_000        // 5 分钟（兜底，本地小模型慢时不卡死）
+const AGENT_WORKFLOW_TIMEOUT_MS = 300_000  // 5 分钟
+
 // 同步对话
 export function chat(data) {
   return request({
     url: '/ai/chat',
     method: 'post',
-    data
+    data,
+    timeout: LLM_CHAT_TIMEOUT_MS,
   })
 }
 
@@ -195,5 +201,29 @@ export function deletePrompt(id) {
   return request({
     url: `/ai/prompts/${id}`,
     method: 'delete'
+  })
+}
+
+// ==================== Agent 工作流 ====================
+
+/**
+ * 启动测试用例生成 Agent 工作流（intent → testcase → review → persist → result）。
+ *
+ * @param {Object}   data
+ * @param {string}   data.requirement      需求描述（必填）
+ * @param {number=}  data.project_id        项目 ID；不传时后端会强制 mock 模式
+ * @param {boolean=} data.skip_result       True 表示只生成 + 落库，不触发执行
+ * @param {boolean=} data.mock              True 时整条链路 mock，零 token + 不写 DB
+ * @param {boolean=} data.mock_review       True 时审核闸自动通过
+ * @param {string=}  data.review_decision   "approved" / "rejected"，强制注入决策
+ * @param {string=}  data.model             覆盖默认 LLM 模型
+ * @param {string=}  data.extra_context     附加上下文
+ */
+export function runTestcaseGenerationWorkflow(data) {
+  return request({
+    url: '/agent/workflow/testcase-generation',
+    method: 'post',
+    data,
+    timeout: AGENT_WORKFLOW_TIMEOUT_MS,
   })
 }
