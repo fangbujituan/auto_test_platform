@@ -430,6 +430,11 @@ taskkill /F /PID <进程ID>
 
 ## 开发计划
 
+> 优先级标注约定：**P0** 立即推进 / **P1** 下一批 / **P2** 待度量后启动 / **P3** 暂缓。
+> 排序依据：度量先于优化、SQL 优先于 LLM、抽象优先于复制；优先做"零 token / 低 token"的工作以匹配 token 预算约束。
+
+### 已完成
+
 - [x] 用户登录认证
 - [x] 项目管理（CRUD + 成员管理）
 - [x] RBAC 权限系统
@@ -437,7 +442,7 @@ taskkill /F /PID <进程ID>
 - [x] 测试用例管理
 - [x] Bug 管理
 - [x] 用例执行与结果记录
-- [x] 仪表盘统计
+- [x] 仪表盘基础统计（5 张总数卡片）
 - [x] 工具箱（用例生成器）
 - [x] Swagger 接口文档（flask-smorest）
 - [x] 全部 API 模块迁移至 flask-smorest
@@ -446,26 +451,77 @@ taskkill /F /PID <进程ID>
 - [x] cURL 命令导入
 - [x] 环境变量管理（{{变量名}} 占位符替换）
 - [x] AI 助手（多提供商适配、同步/流式对话、提示词模板）
-- [ ] 质量数据统计（大数据看板）
-  - [ ] 测试执行统计 — 通过率/失败率趋势图、按项目/模块维度统计、执行耗时分布
-  - [ ] Bug 质量分析 — Bug 状态分布（饼图）、严重程度/优先级分布、Bug 趋势（新增 vs 关闭）、Bug 平均修复时长、按模块/版本的缺陷密度
-  - [ ] 用例覆盖度 — 接口覆盖率（已绑定用例的接口占比）、用例优先级分布、用例状态分布（草稿/已评审/已废弃）
-  - [ ] 需求质量追踪 — 需求状态流转统计、需求关联用例/Bug 数量、冲刺燃尽图、冲刺完成率对比
-  - [ ] 项目质量总览 — 多项目质量评分对比、项目健康度雷达图（用例覆盖率、Bug 收敛率、执行通过率、需求完成率）
-  - [ ] 团队效能统计 — 成员 Bug 提交/解决排行、成员用例执行量统计
-  - [ ] 数据导出 — 质量报告 PDF/Excel 导出、自定义时间范围筛选
-- [ ] 智能测试用例生成（AI 驱动）
-- [ ] 执行引擎增强与补全
+- [x] Web UI 录制回放 Agent（基于 Playwright MCP，已生成可执行 TS 脚本）
+- [x] UI 代码生成管线 P0–P3 主体优化（完成于 2026-03-24，详见 `ai-server/docs/coding/`）
+- [x] Token 消耗统计 v1（接入 LangChain Callback，存 SQLite）
+
+### P0 — 立即推进（基本零 token，是后续一切判断的基础）
+
+- [ ] **Token 统计系统 v2 落地**（`ai-server/docs/coding/TS-P0-001 ~ TS-P1-001`）
+  - [ ] 三张新表（threads / token_records / thread_events）建表与 v1→v2 迁移
+  - [ ] TokenCounter 重构（thread_id 为核心维度）
+  - [ ] TokenCallbackHandler 增加 on_llm_start / on_llm_error / latency 追踪
+  - [ ] thread_id 通过 ContextVar 自动注入，去掉 agent 主动调用工具的依赖
+  - [ ] v2 API 路由 `/api/v1/token-stats/*`
+  - 价值：所有后续优化的"度量衡"，没有它无法判断 token 优化收益
+- [ ] **质量数据看板后端骨架**（spec：`.kiro/specs/dashboard-quality-statistics/`）
+  - [ ] `quality_dashboard_blp` 蓝图 + filter / cache / 权限隔离三件套
+  - [ ] 60s TTL 缓存层 + `X-Cache: HIT/MISS` 头 + 10s 查询超时熔断
+  - [ ] **首个主题：测试执行统计**（trend / by-project / duration-distribution）作为模板
+  - [ ] 补 Alembic 索引迁移（详见 design.md 索引清单）
+  - 价值：纯 SQL 聚合，零 token；模板跑通后剩余 6 个主题是复读机
+
+### P1 — 下一批（Agent 通用化 + API 自动化首发）
+
+- [x] **Agent 通用化重构（提炼通用测试流程骨架）** ✅ 2026-06
+  - [x] 把 `tools/core/agent_factory.py` 的 `make_agent` 拆为「骨架 + 插件式 MCP/Prompt」（已迁入 `app/agents/orchestration` + `app/agents/business`）
+  - [x] 统一流程：`意图解析 → 用例生成 → 审核 → 落库 → 执行 → 缺陷登记`（`app/agents/workflows/testcase_generation_workflow.py`）
+  - [x] 拆分 `IntentAgent / TestcaseAgent / ReviewGateAgent / PersistenceAgent / UIScriptAgent / RecordingAgent / ResultAgent`，共享 BaseAgent + Orchestrator
+  - 价值：扩展任意测试类型零边际成本，是后续 API/性能 agent 的前置条件
+- [x] **atp-mcp（自建）—— 把 ATP 后端能力暴露为 MCP 工具** ✅ 2026-06
+  - [x] 接口查询 / 用例查询 / Bug 查询 / 需求查询 / 执行结果查询 5 个 query 工具（含原有 ai_chat / 用例生成 / 用例执行）
+  - [ ] 鉴权打通（沿用 `@login_required`，MCP 侧带 token） — 待后续接入
+  - 价值：让 agent 能直接读写主平台，是「页面对话框驱动用例生成」的桥
+- [x] **API 自动化 Agent + http-api-mcp** ✅ 2026-06
+  - [x] 自建轻量 http-api-mcp（13 个工具：通用请求 / GET-POST 别名 / 加载 OpenAPI / 列端点 / 按 operationId 发请求 / 状态码-JSONPath-响应时间断言 / 会话变量管理）
+  - [x] 基于通用骨架装配 `ApiScriptAgent`（产 pytest 风格脚本）
+  - [x] 新增 `api_testing_workflow`（6 节点，非 api 意图自动短路）
+- [ ] **质量看板剩余 6 个主题 + 前端**
+  - [ ] Bug / 用例覆盖 / 需求 / 项目总览 / 团队效能 / 数据导出
+  - [ ] 前端 `Dashboard.vue` 改造 + 接入 ECharts 5（按需引入）
+  - [ ] Excel 导出（openpyxl）+ PDF 导出（reportlab，可选依赖降级 501）
+- [ ] **swagger-mcp（自建小工具）**：解析 OpenAPI 自动生成 API case
+
+### P2 — 待度量后启动
+
+- [ ] **看板 AI 增强（默认关闭、按钮触发、结果缓存）**
+  - [ ] AI 质量周报：把 7 大主题数据塞给 LLM 生成总结，单次 1K–3K token，缓存 24h
+  - [ ] 异常诊断：通过率骤降 / Bug 突增时手动触发 LLM 解读
+  - [ ] 智能筛选：自然语言转 Quality_Filter
+- [ ] **性能自动化 Agent + k6-mcp / locust-mcp**
+  - [ ] 自建 k6-mcp 或 locust-mcp（社区暂无成熟方案）
+  - [ ] 装配 `perf_agent`，调引擎 `app/engine/perf_engine`
+- [ ] **db-mcp 接入**（测试数据准备 / 断言数据落库，复用 mcp-server-mysql）
+- [ ] **执行引擎增强与补全**
   - [ ] API 引擎（api_engine）能力补全
-  - [ ] UI 引擎（ui_engine）—— UI 用例 + 脚本自动生成与执行
+  - [ ] UI 引擎（ui_engine）补全（对接 recording_agent 产物）
   - [ ] 性能引擎（perf_engine）—— 性能用例 + 脚本自动生成与执行
-  - [ ] App 引擎（app_engine，预留）
-- [ ] 页面对话框驱动的用例 + 脚本自动生成（UI / API / 性能）
-- [ ] MCP 能力暴露（供 AI 客户端调用执行测试）
-- [ ] LangGraph 多 Agent 协作（app/agents）
-  - [ ] 确定 Agent 部署形态（随后端 Docker 打包 vs 独立注册表/服务）
+- [ ] **页面对话框驱动的用例 + 脚本自动生成（UI / API / 性能）**
+
+### P3 — 暂缓
+
+- [ ] UI 代码生成管线 P3 系列锦上添花项（`ai-server/docs/coding/P3-*`）
+- [ ] App 自动化（`app/engine/app_engine`，工具链最重）
 - [ ] 定时任务支持
-- [ ] 测试报告导出
+- [ ] 测试报告导出（与质量看板导出合并考量）
+- [ ] LangGraph Agent 部署形态决策（随后端 Docker / 独立注册表）
+
+### Token 经济性硬规则（写进 steering）
+
+- 调用 agent 前先查 `recording_agent` 已有脚本，命中直接回放（已实现，持续保持）
+- LLM 生成内容落库，相同 prompt-hash 走缓存
+- 简单分类 / 路由用 `local/llama3.2-1b` 或 deepseek，重活才上 Claude/Opus
+- 质量看板默认零 LLM，AI 增强独立 endpoint，绝不放进首屏自动加载
 
 ## Git 版本管理
 

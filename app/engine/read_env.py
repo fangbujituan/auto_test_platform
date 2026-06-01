@@ -4,8 +4,11 @@
 初始化环境变量
 """
 
-from app.utils.logger_config import logger
+import logging
+
 from app.models.autoer import AutoModel
+
+logger = logging.getLogger(__name__)
 
 
 class ReadEnv:

@@ -5,9 +5,11 @@
 """
 import json
 import os
+import logging
 from datetime import datetime
 from typing import List, Tuple
-from app.utils.logger_config import logger
+
+logger = logging.getLogger(__name__)
 from app.engine.liu_shui_xian import TestCaseStepResult  # 引入 TestCaseStepResult 用于类型提示
 
 

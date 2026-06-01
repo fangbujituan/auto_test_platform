@@ -3,11 +3,14 @@
 @Time: 2025/06/07
 执行用例调度驱动·转子发动机
 """
+import logging
 import requests
 import json
-from app.utils.logger_config import logger
+
 from app.engine.read_env import ReadEnv
 from app.engine.assertion_handler import AssertionHandler, AssertionResult
+
+logger = logging.getLogger(__name__)
 
 
 class TestCaseStepResult:

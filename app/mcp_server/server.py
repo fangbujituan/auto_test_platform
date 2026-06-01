@@ -201,6 +201,237 @@ def create_mcp_server(name: str = "auto-test-platform") -> FastMCP:
             )
         return report.to_dict()
 
+    # ------------------------------------------------------------------
+    # 平台数据查询工具（让外部 Agent 能直接读 ATP 数据，无需走 HTTP）
+    # ------------------------------------------------------------------
+    @mcp.tool(
+        description=(
+            "查询某项目下的接口（API）列表。"
+            "返回每个接口的 id / name / method / path / module / service / "
+            "headers / params / body 等完整定义，"
+            "供外部 Agent 生成 API 测试脚本或做覆盖度分析时使用。"
+        )
+    )
+    def query_apis(
+        project_id: int,
+        keyword: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Dict[str, Any]:
+        """按项目 + 关键字分页查询接口。"""
+        from app import create_app
+        from app.models.api import Api
+
+        app = create_app()
+        with app.app_context():
+            query = Api.query.filter_by(project_id=project_id, status=1)
+            if keyword:
+                like = f"%{keyword}%"
+                query = query.filter(
+                    (Api.name.like(like))
+                    | (Api.path.like(like))
+                    | (Api.description.like(like))
+                )
+            total = query.count()
+            items = (
+                query.order_by(Api.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+                .all()
+            )
+            return {
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "items": [a.to_dict() for a in items],
+            }
+
+    @mcp.tool(
+        description=(
+            "查询某项目下的测试用例列表。"
+            "返回每条用例的 case_no / title / steps / expected_result / "
+            "priority / case_type / case_status 等。"
+            "外部 Agent 可用于复用已有用例、做覆盖度盘点或基于历史用例生成新用例。"
+        )
+    )
+    def query_test_cases(
+        project_id: int,
+        keyword: Optional[str] = None,
+        priority: Optional[str] = None,
+        case_status: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Dict[str, Any]:
+        """按项目 + 关键字 + 优先级 + 状态分页查询用例。"""
+        from app import create_app
+        from app.models.test_case import TestCaseManagement
+
+        app = create_app()
+        with app.app_context():
+            query = TestCaseManagement.query.filter_by(project_id=project_id, status=1)
+            if keyword:
+                like = f"%{keyword}%"
+                query = query.filter(
+                    (TestCaseManagement.title.like(like))
+                    | (TestCaseManagement.case_no.like(like))
+                )
+            if priority:
+                query = query.filter(TestCaseManagement.priority == priority)
+            if case_status:
+                query = query.filter(TestCaseManagement.case_status == case_status)
+            total = query.count()
+            items = (
+                query.order_by(TestCaseManagement.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+                .all()
+            )
+            return {
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "items": [c.to_dict() for c in items],
+            }
+
+    @mcp.tool(
+        description=(
+            "查询某项目下的 Bug 列表。"
+            "返回每条 bug 的 title / status / severity / priority / "
+            "steps_to_reproduce / actual_result / expected_result 等。"
+            "外部 Agent 可用于做缺陷分析、回归测试设计、质量评估等。"
+        )
+    )
+    def query_bugs(
+        project_id: int,
+        status: Optional[str] = None,
+        severity: Optional[str] = None,
+        keyword: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Dict[str, Any]:
+        """按项目 + 状态 + 严重度 + 关键字分页查询 bug。"""
+        from app import create_app
+        from app.models.bug import Bug
+
+        app = create_app()
+        with app.app_context():
+            query = Bug.query.filter_by(project_id=project_id)
+            if status:
+                query = query.filter(Bug.status == status)
+            if severity:
+                query = query.filter(Bug.severity == severity)
+            if keyword:
+                like = f"%{keyword}%"
+                query = query.filter(
+                    (Bug.title.like(like)) | (Bug.description.like(like))
+                )
+            total = query.count()
+            items = (
+                query.order_by(Bug.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+                .all()
+            )
+            return {
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "items": [b.to_dict() for b in items],
+            }
+
+    @mcp.tool(
+        description=(
+            "查询某项目下的需求列表。"
+            "返回每条需求的 title / description / status / priority / "
+            "sprint_id / tags 等。"
+            "外部 Agent 可用于做需求 -> 用例 -> bug 的串联分析。"
+        )
+    )
+    def query_requirements(
+        project_id: int,
+        status: Optional[str] = None,
+        sprint_id: Optional[int] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Dict[str, Any]:
+        """按项目 + 状态 + 冲刺分页查询需求。"""
+        from app import create_app
+        from app.models.requirement import Requirement
+
+        app = create_app()
+        with app.app_context():
+            query = Requirement.query.filter_by(project_id=project_id)
+            if status:
+                query = query.filter(Requirement.status == status)
+            if sprint_id is not None:
+                query = query.filter(Requirement.sprint_id == sprint_id)
+            total = query.count()
+            items = (
+                query.order_by(Requirement.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+                .all()
+            )
+            return {
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "items": [r.to_dict() for r in items],
+            }
+
+    @mcp.tool(
+        description=(
+            "查询某项目下的执行结果列表。"
+            "返回每条结果的 case_id / status / actual_result / "
+            "duration / executed_at 等。"
+            "外部 Agent 可用于做质量趋势分析、回归判定等。"
+        )
+    )
+    def query_test_results(
+        project_id: int,
+        case_id: Optional[int] = None,
+        status: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Dict[str, Any]:
+        """按项目 + 用例 + 状态分页查询执行结果。"""
+        from app import create_app
+        from app.models.result import TestResult
+
+        app = create_app()
+        with app.app_context():
+            query = TestResult.query
+            if hasattr(TestResult, "project_id"):
+                query = query.filter(TestResult.project_id == project_id)
+            if case_id is not None:
+                query = query.filter(TestResult.case_id == case_id)
+            if status:
+                query = query.filter(TestResult.status == status)
+            total = query.count()
+            items = (
+                query.order_by(TestResult.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+                .all()
+            )
+            # TestResult 不一定有 to_dict，做最小兼容
+            def _to_dict(r):
+                if hasattr(r, "to_dict"):
+                    return r.to_dict()
+                return {
+                    "id": getattr(r, "id", None),
+                    "case_id": getattr(r, "case_id", None),
+                    "status": getattr(r, "status", None),
+                    "actual_result": getattr(r, "actual_result", None),
+                }
+
+            return {
+                "total": total,
+                "page": page,
+                "page_size": page_size,
+                "items": [_to_dict(r) for r in items],
+            }
+
     return mcp
 
 

@@ -1,0 +1,47 @@
+# =============================================================================
+# Human-in-the-Loop 审核闸配置
+# =============================================================================
+# 在工作流中声明审核点，Orchestrator 检测到对应 agent 完成后会自动暂停
+# 工作流，并把内容投递给 HumanReviewGate 等待人工决策。
+#
+# 字段说明：
+#   workflows.<workflow_name>.review_points[].after_agent  审核插入点
+#   workflows.<workflow_name>.review_points[].required     是否强制审核
+#   workflows.<workflow_name>.review_points[].timeout_seconds  超时（秒）
+#
+#   notifications.reminder_interval_seconds  巡检/提醒间隔（秒）
+#   notifications.channels                   通知渠道（webhook 等）
+#
+# 作者: yandc
+# =============================================================================
+
+review_gates:
+  workflows:
+    # 测试用例生成工作流：testcase_agent 产出后必审
+    testcase_generation:
+      review_points:
+        - after_agent: "testcase_agent"
+          required: true
+          timeout_seconds: 3600   # 1 小时未审视为超时
+
+    # UI 脚本生成工作流：ui_script_agent 产出后必审，时限更长
+    ui_script_generation:
+      review_points:
+        - after_agent: "ui_script_agent"
+          required: true
+          timeout_seconds: 7200   # 2 小时
+
+    # API 脚本生成工作流：api_script_agent 产出后必审
+    api_script_generation:
+      review_points:
+        - after_agent: "api_script_agent"
+          required: true
+          timeout_seconds: 3600
+
+  notifications:
+    # 半小时巡检一次，到达提醒间隔且未决会触发 webhook
+    reminder_interval_seconds: 1800
+    channels:
+      - type: "webhook"
+        # 通过环境变量 REVIEW_WEBHOOK_URL 注入；未配置时通知会被跳过
+        url: "${REVIEW_WEBHOOK_URL}"

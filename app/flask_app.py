@@ -16,12 +16,16 @@ from flask import Flask, g, request
 from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from flask_smorest import Api
+import logging
+
 from app.config.settings import config
 from app.models.base import db
-from app.utils.logger_factory import get_logger
+from app.utils.logger_config import setup_logging  # 触发日志系统初始化
+
+setup_logging()
 
 # 请求/响应日志记录器
-api_logger = get_logger("api.access")
+api_logger = logging.getLogger("api.access")
 
 
 class CustomJSONProvider(DefaultJSONProvider):
@@ -150,6 +154,7 @@ def create_app(config_name=None):
     from app.routes.automation import automation_blp, automation_exec_blp
     from app.routes.webhook import webhook_blp
     from app.routes.execution_history import execution_history_blp
+    from app.routes.agent_workflow import agent_workflow_blp
 
     api.register_blueprint(auth_blp)
     api.register_blueprint(project_blp)
@@ -182,6 +187,7 @@ def create_app(config_name=None):
     api.register_blueprint(automation_exec_blp)
     api.register_blueprint(webhook_blp)
     api.register_blueprint(execution_history_blp)
+    api.register_blueprint(agent_workflow_blp)
 
     # 创建数据表
     with app.app_context():

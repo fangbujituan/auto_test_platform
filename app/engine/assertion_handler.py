@@ -3,7 +3,9 @@
 @Time: 2025/06/07
 断言处理
 """
-from app.utils.logger_config import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AssertionResult:

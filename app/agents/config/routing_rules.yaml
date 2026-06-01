@@ -1,0 +1,71 @@
+# =============================================================================
+# Agent 模型路由规则
+# =============================================================================
+# 规则按 task_type 匹配，每条规则声明：
+#   - complexity_threshold  默认复杂度（low / medium / high）
+#   - local_models          LOCAL 层级候选模型（按优先级排序）
+#   - cloud_models          CLOUD 层级候选模型（按优先级排序）
+#
+# 模型标识使用 ``app/services/llm_gateway.get_model`` 的 "gateway/provider/model"
+# 或 "gateway/model" 写法，便于 Step 4 把 _call_model 桥接到 llm_gateway 后直接生效。
+#
+# 经济性策略：
+#   - LOW 任务（意图分类、简单路由）→ 优先 local 小模型
+#   - MEDIUM 任务（用例生成、结果解析）→ 本地优先，失败升 cloud
+#   - HIGH 任务（UI 操作链路、复杂推理）→ 直接 cloud
+#
+# 作者: yandc
+# =============================================================================
+
+routing:
+  rules:
+    # 意图理解：判断 NL 是 UI / API / 性能测试，提取目标与断言点
+    - task_type: "intent"
+      complexity_threshold: "low"
+      local_models:
+        - "local/llama3.2-1b"
+      cloud_models:
+        - "aiclient/claude-kiro-oauth/claude-haiku-4.5"
+        - "kiro/deepseek-3.2"
+
+    # 测试用例生成：结构化输出 JSON 用例
+    - task_type: "testcase"
+      complexity_threshold: "medium"
+      local_models:
+        - "local/llama3.2-1b"
+      cloud_models:
+        - "kiro/deepseek-3.2"
+        - "aiclient/claude-kiro-oauth/claude-sonnet-4-6"
+
+    # UI 脚本生成 / 浏览器操作链路：需要长上下文 + 多轮工具调用
+    - task_type: "ui_script"
+      complexity_threshold: "high"
+      local_models: []
+      cloud_models:
+        - "aiclient/claude-kiro-oauth/claude-sonnet-4-6"
+        - "aiclient/claude-kiro-oauth/claude-opus-4.5"
+
+    # API 脚本生成：相对简单，本地优先
+    - task_type: "api_script"
+      complexity_threshold: "medium"
+      local_models:
+        - "local/llama3.2-1b"
+      cloud_models:
+        - "kiro/deepseek-3.2"
+        - "aiclient/claude-kiro-oauth/claude-haiku-4.5"
+
+    # 结果解析 + 自动建 bug：基于规则 + LLM 兜底，复杂度低
+    - task_type: "result"
+      complexity_threshold: "low"
+      local_models:
+        - "local/llama3.2-1b"
+      cloud_models:
+        - "kiro/deepseek-3.2"
+
+  fallback:
+    # 同层级内允许的最大尝试次数（含首次）
+    max_retries: 3
+    # 重试间隔（秒）
+    retry_delay_seconds: 2
+    # 是否启用跨层级升级（local 全失败 → 升 cloud）
+    escalation_enabled: true

@@ -1,42 +1,34 @@
 # -*- coding: UTF-8 -*-
-"""日志桥接器，适配主项目的日志系统"""
+"""
+``logs`` 兼容入口（保留这个名字仅因为有 16+ 处历史调用方）。
+
+历史包袱
+--------
+原实现是 ``LogBridge``：把 ``CallerAwareLogger`` 再包一层，每次方法调用
+都先 ``_convert_to_main_logger()`` 再转发，纯属冗余。重构后**直接暴露
+标准 logger**，对外接口（``logs.info / debug / warning / error / critical
+/ exception``）完全不变。
+
+新代码请直接用 ``logging.getLogger(__name__)``；本模块仅为兼容现有
+``from app.utils.debug.readlog import logs`` / ``from app.utils.debug
+import logs`` 写法保留。
+
+@Author: yandc（重构于 2026-06）
+"""
 import logging
-from app.utils.logger_config import logger as main_logger
+
+# 触发一次 setup_logging（导入即生效），确保 root handler 就绪
+from app.utils.logger_config import setup_logging  # noqa: F401
+
+# 业务侧统一用 "app" 作为根名称，便于按 logger 名过滤
+logs = logging.getLogger("app")
 
 
-class LogBridge:
-    """
-    桥接主项目的日志系统，保持 ai-server 代码的兼容性
-    """
+__all__ = ["logs"]
 
-    def _convert_to_main_logger(self):
-        """获取主项目的 logger 实例"""
-        return main_logger
-
-    def info(self, message, *args, **kwargs):
-        self._convert_to_main_logger().info(message, *args, **kwargs)
-
-    def debug(self, message, *args, **kwargs):
-        self._convert_to_main_logger().debug(message, *args, **kwargs)
-
-    def warning(self, message, *args, **kwargs):
-        self._convert_to_main_logger().warning(message, *args, **kwargs)
-
-    def error(self, message, *args, **kwargs):
-        self._convert_to_main_logger().error(message, *args, **kwargs)
-
-    def critical(self, message, *args, **kwargs):
-        self._convert_to_main_logger().critical(message, *args, **kwargs)
-
-    def exception(self, message, *args, **kwargs):
-        self._convert_to_main_logger().exception(message, *args, **kwargs)
-
-
-# 创建全局日志实例
-logs = LogBridge()
 
 if __name__ == "__main__":
     logs.info("This is an info message")
     logs.error("This is an error message")
-    logs.debug("This is a debug message")
+    logs.debug("This is a debug message")  # 默认 INFO，看不到
     logs.warning("This is a warning message")

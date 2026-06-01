@@ -5,8 +5,11 @@
 这是一个独立的脚本，用于启动自动化测试控制集合
 控制器，将各个部件组装在一起
 """
+import logging
+
 from app.services.api_service import ApiService
-from app.utils.logger_config import logger
+
+logger = logging.getLogger(__name__)
 from app.engine.read_env import ReadEnv
 from app.engine.read_case import FormattingData
 from app.engine.assertion_handler import AssertionHandler
