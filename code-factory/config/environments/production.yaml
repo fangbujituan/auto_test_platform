@@ -1,0 +1,16 @@
+# Production environment configuration
+database:
+  host: db.production.internal
+  port: 5432
+  database: code_factory
+  user: code_factory_app
+
+model:
+  local_endpoint: "http://model-server.internal:11434"
+  default_temperature: 0.3
+  default_max_tokens: 4096
+
+log_level: INFO
+vector_store_collection: knowledge_base
+similarity_threshold: 0.75
+review_timeout_seconds: 3600

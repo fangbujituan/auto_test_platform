@@ -1,0 +1,48 @@
+# Common settings for Code Factory
+# These settings are shared across all environments.
+# Environment-specific overrides are in config/environments/<env>.yaml
+
+# Application metadata
+app:
+  name: "Code Factory"
+  version: "0.1.0"
+  description: "QA Code Factory - Intelligent Test Automation Platform"
+
+# Default database settings (host/port/credentials overridden per environment)
+database:
+  port: 5432
+  pool_size: 10
+  pool_timeout_seconds: 30
+
+# Default model settings (endpoint overridden per environment)
+model:
+  default_temperature: 0.7
+  default_max_tokens: 4096
+
+# RAG pipeline defaults
+rag:
+  retrieval_strategy: "hybrid"
+  top_k: 5
+  similarity_threshold: 0.7
+
+# Chunker defaults
+chunker:
+  max_tokens: 512
+  overlap_tokens: 50
+  code_block_max_tokens: 2048
+
+# Vector store defaults
+vector_store:
+  collection: "knowledge_base"
+  embedding_dimension: 1536
+  index_lists: 100
+
+# Agent orchestrator defaults
+orchestrator:
+  max_agent_retries: 2
+  output_validation_enabled: true
+
+# Logging defaults
+logging:
+  format: "json"
+  default_level: "INFO"

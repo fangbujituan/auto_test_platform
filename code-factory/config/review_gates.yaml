@@ -1,0 +1,17 @@
+review_gates:
+  workflows:
+    test_case_generation:
+      review_points:
+        - after_agent: "testcase_agent"
+          required: true
+          timeout_seconds: 3600
+    test_script_generation:
+      review_points:
+        - after_agent: "testscript_agent"
+          required: true
+          timeout_seconds: 7200
+  notifications:
+    reminder_interval_seconds: 1800
+    channels:
+      - type: "webhook"
+        url: "${REVIEW_WEBHOOK_URL}"

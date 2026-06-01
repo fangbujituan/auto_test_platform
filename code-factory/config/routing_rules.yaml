@@ -1,0 +1,20 @@
+routing:
+  rules:
+    - task_type: "test_case_generation"
+      complexity_threshold: "medium"
+      local_models:
+        - "ollama/qwen2.5:32b"
+        - "ollama/deepseek-coder-v2:16b"
+      cloud_models:
+        - "claude-3-5-sonnet-20241022"
+        - "deepseek/deepseek-chat"
+    - task_type: "test_data_generation"
+      complexity_threshold: "low"
+      local_models:
+        - "ollama/qwen2.5:14b"
+      cloud_models:
+        - "deepseek/deepseek-chat"
+  fallback:
+    max_retries: 3
+    retry_delay_seconds: 2
+    escalation_enabled: true

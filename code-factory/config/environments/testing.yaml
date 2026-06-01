@@ -1,0 +1,16 @@
+# Testing environment configuration
+database:
+  host: localhost
+  port: 5432
+  database: code_factory_test
+  user: postgres
+
+model:
+  local_endpoint: "http://localhost:11434"
+  default_temperature: 0.0
+  default_max_tokens: 2048
+
+log_level: WARNING
+vector_store_collection: knowledge_base_test
+similarity_threshold: 0.7
+review_timeout_seconds: 60
