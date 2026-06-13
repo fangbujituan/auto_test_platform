@@ -52,7 +52,7 @@ services:
       - AI_ENCRYPTION_KEY=${AI_ENCRYPTION_KEY}
       - TZ=Asia/Shanghai
     volumes:
-      - /opt/vplatform/unis_auto_platform/logs:/app/logs
+      - /opt/vplatform/auto_test_platform/logs:/app/logs
     depends_on:
       mysql-db:
         condition: service_healthy

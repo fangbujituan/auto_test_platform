@@ -59,7 +59,7 @@
 ## 项目结构
 
 ```
-unis_auto_platform/
+auto_test_platform/
 ├── app/                      # 后端（Flask）
 │   ├── flask_app.py          # Flask 应用工厂
 │   ├── requirements.txt      # Python 依赖
@@ -185,8 +185,8 @@ unis_auto_platform/
 
 ```bash
 # 克隆项目
-git clone https://github.com/fangbujituan/unis_auto_platform.git
-cd unis_auto_platform
+git clone https://github.com/fangbujituan/auto_test_platform.git
+cd auto_test_platform
 
 # 创建并激活虚拟环境
 python -m venv venv
@@ -334,8 +334,8 @@ npm run dev
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/fangbujituan/unis_auto_platform.git
-cd unis_auto_platform
+git clone https://github.com/fangbujituan/auto_test_platform.git
+cd auto_test_platform
 
 # 2. 创建环境变量文件
 cp .env.example .env
@@ -374,9 +374,9 @@ docker compose exec flask-app python -m app.init_permission
 docker compose logs -f flask-app
 ## 方式1：在宿主机直接查看（推荐）
 # 查看日志文件
-tail -f /opt/vplatform/unis_auto_platform/logs/info.log
+tail -f /opt/vplatform/auto_test_platform/logs/info.log
 # 查看最近100行
-tail -100 /opt/vplatform/unis_auto_platform/logs/info.log
+tail -100 /opt/vplatform/auto_test_platform/logs/info.log
 
 ## 方式2：进入容器查看
 # 进入容器
