@@ -88,6 +88,22 @@ def _register_request_logging(app):
         return response
 
 
+def _register_json_charset(app):
+    """为所有 application/json 响应显式声明 UTF-8 字符集。
+
+    避免 Safari 等遵循"显式 charset 优先、否则做编码嗅探"的客户端
+    将 UTF-8 中文按 Latin-1 解码而出现乱码（典型场景：
+    /api/docs/openapi.json 在 Safari 中显示乱码，Chrome 正常）。
+    """
+
+    @app.after_request
+    def _force_json_charset(response):
+        content_type = response.content_type or ""
+        if response.mimetype == "application/json" and "charset" not in content_type.lower():
+            response.headers["Content-Type"] = "application/json; charset=utf-8"
+        return response
+
+
 def create_app(config_name=None):
     """创建并配置Flask应用。"""
     if config_name is None:
@@ -124,6 +140,9 @@ def create_app(config_name=None):
 
     # 注册请求/响应日志中间件
     _register_request_logging(app)
+
+    # 强制 JSON 响应带 charset=utf-8（修复 Safari 中文乱码）
+    _register_json_charset(app)
 
     # 注册所有 flask-smorest 蓝图
     from app.routes.auth import auth_blp
