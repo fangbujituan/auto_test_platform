@@ -380,7 +380,7 @@ tail -100 /opt/vplatform/auto_test_platform/logs/info.log
 
 ## 方式2：进入容器查看
 # 进入容器
-docker exec -it flask-app bash
+docker exec -it flask-app sh
 # 查看日志
 tail -f /app/logs/info.log
 
