@@ -47,14 +47,8 @@
 
 ### 快速链接
 - [快速开始指南](doc/QUICK_START.md)
-- [完整部署指南](doc/COMPLETE_DEPLOYMENT_GUIDE.md)
-- [项目结构说明](doc/project-structure.md)
-- [Bug 管理模块](doc/BUG_MODULE_GUIDE.md)
-- [测试用例管理](doc/TEST_CASE_MODULE_GUIDE.md)
-- [API 测试指南](doc/API_TEST_GUIDE.md)
-- [权限管理指南](doc/PERMISSION_GUIDE.md)
-- [SaaS 私有化部署方案](doc/SAAS_PRIVATIZATION_DESIGN.md)
-- [SAP 架构分析](doc/SAP_ARCHITECTURE_ANALYSIS.md)
+- [生产部署指南](doc/生产部署指南.md)
+
 
 ## 项目结构
 
@@ -324,6 +318,8 @@ npm run dev
 - 操作日志 — 用户操作行为记录与审计
 
 ## Docker 部署（生产环境）
+
+**重要提示**：生产环境部署请务必阅读 **[生产环境部署指南](doc/生产环境部署指南.md)**，其中包含详细的安全配置、性能优化、监控维护和故障排除内容。
 
 ### 前置条件
 
