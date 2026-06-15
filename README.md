@@ -269,7 +269,7 @@ npm run dev
 ## 技术栈
 
 ### 后端
-- Python 3.10+
+- Python 3.13+
 - Flask 3.x — Web 框架
 - Flask-SQLAlchemy — ORM
 - Flask-Smorest — OpenAPI/Swagger 文档生成
