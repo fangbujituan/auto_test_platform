@@ -1,7 +1,13 @@
 <template>
-  <div class="ai-chat-widget">
-    <!-- 悬浮按钮 -->
-    <div class="ai-fab" @click="toggleChat" :class="{ active: visible }">
+  <div class="ai-chat-widget" :style="widgetStyle">
+    <!-- 悬浮按钮：可拖动，按下后阈值内移动视为点击 -->
+    <div
+      class="ai-fab"
+      :class="{ active: visible, dragging }"
+      @click="onFabClick"
+      @mousedown="onFabPointerDown"
+      @touchstart.passive="onFabPointerDown"
+    >
       <el-icon :size="26"><ChatDotRound /></el-icon>
     </div>
 
@@ -11,7 +17,7 @@
         v-show="visible"
         class="ai-chat-panel"
         :class="{ 'is-fullscreen': fullscreen }"
-        :style="fullscreen ? fullscreenStyle : null"
+        :style="fullscreen ? fullscreenStyle : panelStyle"
       >
         <div class="chat-header">
           <span class="chat-title">AI 助手</span>
@@ -150,16 +156,173 @@ const toggleFullscreen = () => {
   scrollToBottom()
 }
 
+// ===== 悬浮球拖动 =====
+// 用 fixed 定位 + left/top 来管理悬浮球位置，
+// 拖动时记录指针位移，松手时如果位移大于阈值就视作"拖动"，
+// 否则视作"点击"，避免拖动结束意外触发对话窗口。
+const FAB_SIZE = 52       // 与样式中 .ai-fab 的尺寸保持一致
+const FAB_MARGIN = 16     // 距离视口边缘的最小留白
+const DRAG_THRESHOLD = 4  // 像素阈值：超过则认为是拖动
+const STORAGE_KEY = 'ai-fab-position'
+
+const dragging = ref(false)
+const fabPos = ref({ x: 0, y: 0 })  // 真实左上角坐标，挂载时初始化
+
+const clampPos = (x, y) => {
+  const maxX = window.innerWidth - FAB_SIZE - FAB_MARGIN
+  const maxY = window.innerHeight - FAB_SIZE - FAB_MARGIN
+  return {
+    x: Math.max(FAB_MARGIN, Math.min(maxX, x)),
+    y: Math.max(FAB_MARGIN, Math.min(maxY, y)),
+  }
+}
+
+const defaultPos = () => ({
+  x: window.innerWidth - FAB_SIZE - 24,
+  y: window.innerHeight - FAB_SIZE - 24,
+})
+
+// 拖动过程中的临时变量，不需要响应式
+let dragStartX = 0
+let dragStartY = 0
+let fabStartX = 0
+let fabStartY = 0
+let dragMoved = false   // 真实位移是否超过阈值
+
+const getPointer = (e) => {
+  if (e.touches && e.touches.length) return e.touches[0]
+  if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0]
+  return e
+}
+
+const onFabPointerDown = (e) => {
+  // 鼠标只响应左键
+  if (e.type === 'mousedown' && e.button !== 0) return
+  const p = getPointer(e)
+  dragging.value = true
+  dragMoved = false
+  dragStartX = p.clientX
+  dragStartY = p.clientY
+  fabStartX = fabPos.value.x
+  fabStartY = fabPos.value.y
+  document.addEventListener('mousemove', onPointerMove)
+  document.addEventListener('mouseup', onPointerUp)
+  document.addEventListener('touchmove', onPointerMove, { passive: false })
+  document.addEventListener('touchend', onPointerUp)
+  document.addEventListener('touchcancel', onPointerUp)
+}
+
+const onPointerMove = (e) => {
+  if (!dragging.value) return
+  const p = getPointer(e)
+  const dx = p.clientX - dragStartX
+  const dy = p.clientY - dragStartY
+  if (!dragMoved && Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
+    dragMoved = true
+  }
+  if (dragMoved) {
+    // 触摸移动时阻止默认滚动，防止页面跟着拖
+    if (e.cancelable) e.preventDefault()
+    fabPos.value = clampPos(fabStartX + dx, fabStartY + dy)
+  }
+}
+
+const onPointerUp = () => {
+  document.removeEventListener('mousemove', onPointerMove)
+  document.removeEventListener('mouseup', onPointerUp)
+  document.removeEventListener('touchmove', onPointerMove)
+  document.removeEventListener('touchend', onPointerUp)
+  document.removeEventListener('touchcancel', onPointerUp)
+  if (dragMoved) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fabPos.value))
+    } catch (_) { /* 隐私模式可能写不进，忽略 */ }
+  }
+  // 延后一帧再清 dragging，避免同步触发 click 把它当成点击
+  requestAnimationFrame(() => { dragging.value = false })
+}
+
+const onFabClick = () => {
+  // 拖动产生的位移会让浏览器随后派发 click，这里要拦掉
+  if (dragMoved) {
+    dragMoved = false
+    return
+  }
+  toggleChat()
+}
+
+// 让窗口大小变化时悬浮球自动回到合法范围内
 const onWindowResize = () => {
   if (fullscreen.value) measureChrome()
+  fabPos.value = clampPos(fabPos.value.x, fabPos.value.y)
 }
 
 onMounted(() => {
+  // 优先用上次保存的位置，否则给个默认右下角
+  let pos = null
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) pos = JSON.parse(raw)
+  } catch (_) { /* ignore */ }
+  if (!pos || typeof pos.x !== 'number' || typeof pos.y !== 'number') {
+    pos = defaultPos()
+  }
+  fabPos.value = clampPos(pos.x, pos.y)
   window.addEventListener('resize', onWindowResize)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onWindowResize)
+  document.removeEventListener('mousemove', onPointerMove)
+  document.removeEventListener('mouseup', onPointerUp)
+  document.removeEventListener('touchmove', onPointerMove)
+  document.removeEventListener('touchend', onPointerUp)
+  document.removeEventListener('touchcancel', onPointerUp)
+})
+
+// widget 整体定位：直接锚到悬浮球的左上角
+const widgetStyle = computed(() => ({
+  left: `${fabPos.value.x}px`,
+  top: `${fabPos.value.y}px`,
+  right: 'auto',
+  bottom: 'auto',
+}))
+
+// 对话面板的展开方向：根据悬浮球位置自动选上/下/左/右，避免飞出屏幕
+const PANEL_W = 380
+const PANEL_H = 520
+const PANEL_GAP = 12
+
+const panelStyle = computed(() => {
+  const { x, y } = fabPos.value
+  const winW = window.innerWidth
+  const winH = window.innerHeight
+
+  // 横向：靠右半屏 → 面板向左对齐悬浮球右沿；靠左半屏 → 向右展开
+  let left
+  if (x + FAB_SIZE / 2 > winW / 2) {
+    left = x + FAB_SIZE - PANEL_W
+  } else {
+    left = x
+  }
+  left = Math.max(8, Math.min(winW - PANEL_W - 8, left))
+
+  // 纵向：上方空间够就往上开，否则往下开
+  let top
+  if (y >= PANEL_H + PANEL_GAP + 8) {
+    top = y - PANEL_H - PANEL_GAP
+  } else {
+    top = y + FAB_SIZE + PANEL_GAP
+  }
+  top = Math.max(8, Math.min(winH - PANEL_H - 8, top))
+
+  return {
+    position: 'fixed',
+    left: `${left}px`,
+    top: `${top}px`,
+    right: 'auto',
+    bottom: 'auto',
+  }
 })
 
 const toggleChat = () => {
@@ -316,8 +479,9 @@ const renderContent = (text) => {
 <style scoped>
 .ai-chat-widget {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  /* left/top 由组件内联 style 注入，初始挂载前用兜底值避免一闪 */
+  left: -9999px;
+  top: -9999px;
   z-index: 9999;
 }
 
@@ -331,9 +495,11 @@ const renderContent = (text) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: grab;
   box-shadow: 0 4px 16px rgba(64, 158, 255, 0.4);
-  transition: all 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
+  user-select: none;
+  touch-action: none;
 }
 
 .ai-fab:hover {
@@ -345,11 +511,18 @@ const renderContent = (text) => {
   background: linear-gradient(135deg, #6366f1, #409eff);
 }
 
-/* 对话面板 */
+/* 拖动中：禁用过渡和 hover 缩放，光标改成抓取中 */
+.ai-fab.dragging,
+.ai-fab.dragging:hover {
+  cursor: grabbing;
+  transition: none;
+  transform: none;
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.55);
+}
+
+/* 对话面板：position/坐标 由组件根据悬浮球位置算出来注入 panelStyle，
+   全屏时则被 fullscreenStyle 覆盖 */
 .ai-chat-panel {
-  position: absolute;
-  bottom: 64px;
-  right: 0;
   width: 380px;
   height: 520px;
   background: var(--el-bg-color);

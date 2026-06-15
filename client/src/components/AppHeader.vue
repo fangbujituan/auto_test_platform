@@ -119,7 +119,7 @@ const handleLogout = async () => {
 
 <style scoped>
 .app-header {
-  height: 60px;
+  height: 48px;
   background: var(--el-bg-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
