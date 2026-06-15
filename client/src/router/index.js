@@ -125,7 +125,7 @@ router.beforeEach((to, from, next) => {
 
 // 动态页签标题
 router.afterEach((to) => {
-  const defaultTitle = 'Unis Auto'
+  const defaultTitle = 'Auto P'
   if (to.params.projectId && to.query.projectName) {
     document.title = `${to.query.projectName}`
   } else {
