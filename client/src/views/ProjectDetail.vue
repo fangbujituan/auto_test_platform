@@ -59,10 +59,10 @@
             ref="treeRef"
             :data="treeData"
             :props="treeProps"
-            node-key="raw_id"
-            :expand-on-click-node="false"
+            node-key="_node_key"
+            :expand-on-click-node="true"
             :highlight-current="true"
-            :indent="0"
+            :indent="16"
             @node-click="handleNodeClick"
             @node-contextmenu="handleNodeContextMenu"
           >
@@ -628,7 +628,7 @@ const switchTab = (tabId) => {
   if (tab && tab.rawId && treeRef.value) {
     const node = findNodeById(treeData.value, tab.rawId)
     if (node) {
-      treeRef.value.setCurrentKey(node.raw_id)
+      treeRef.value.setCurrentKey(node._node_key)
     }
   }
 }
@@ -770,7 +770,7 @@ const loadTree = async () => {
   try {
     const res = await getFolderTree(projectId.value)
     console.log('目录树数据:', res)
-    treeData.value = res.data || []
+    treeData.value = injectNodeKeys(res.data || [])
     console.log('treeData:', treeData.value)
   } catch (error) {
     console.error('加载目录树失败:', error)
@@ -833,6 +833,19 @@ const handleNodeClick = (data) => {
   } else if (data.type === 'folder') {
     currentFolder.value = data
   }
+}
+
+// 点击整行时由 el-tree 自动 toggle 展开（expand-on-click-node="true"），
+// 这里不再手动处理展开逻辑，仅保留业务点击。
+
+// 给树上每个节点注入跨类型唯一的 key（type_rawId）
+// 因为 folder/api/case 各自的 raw_id 来自不同表，仅用 raw_id 会撞 → setCurrentKey 等会跳错节点
+const injectNodeKeys = (nodes) => {
+  for (const n of nodes) {
+    n._node_key = `${n.type}_${n.raw_id ?? n.id}`
+    if (n.children && n.children.length) injectNodeKeys(n.children)
+  }
+  return nodes
 }
 
 // 获取节点统计信息
@@ -1626,7 +1639,7 @@ const formatResponseBody = (body) => {
 }
 
 :deep(.el-tree-node__content) {
-  height: 36px;
+  height: 30px;
   padding: 0 8px;
 }
 
@@ -1639,21 +1652,11 @@ const formatResponseBody = (body) => {
   color: var(--el-color-primary);
 }
 
-/* 树形缩进引导线：indent=0 后由 padding-left 控制缩进 */
+/* 缩进交回 el-tree 默认（indent=16，inline padding-left 加在 .el-tree-node__content 上）。
+   不用 .el-tree-node__children 的 padding-left 做缩进，避免深层级的整行被父容器
+   挤窄，hover 阴影才能在所有层级保持等宽。 */
 :deep(.el-tree-node__children) {
-  position: relative;
-  padding-left: 18px;
-}
-
-:deep(.el-tree-node__children:not(:empty)::before) {
-  content: '';
-  position: absolute;
-  left: 9px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--el-border-color-light);
-  pointer-events: none;
+  padding-left: 0;
 }
 
 .api-list {

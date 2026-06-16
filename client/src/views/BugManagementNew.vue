@@ -68,7 +68,8 @@
             ref="treeRef"
             :data="treeData"
             :props="treeProps"
-            :expand-on-click-node="false"
+            node-key="_node_key"
+            :expand-on-click-node="true"
             :highlight-current="true"
             @node-click="handleNodeClick"
           >
@@ -705,7 +706,7 @@ const loadTree = async () => {
   loading.value = true
   try {
     const res = await getBugTree(projectId.value)
-    treeData.value = res.data || []
+    treeData.value = injectNodeKeys(res.data || [])
   } catch (error) {
     console.error('加载目录树失败:', error)
     ElMessage.error('加载目录树失败')
@@ -735,6 +736,19 @@ const handleNodeClick = async (data) => {
     currentFolder.value = data
     currentBug.value = null
   }
+}
+
+// 点击整行时由 el-tree 自动 toggle 展开（expand-on-click-node="true"），
+// 这里不再手动处理展开逻辑，仅保留业务点击。
+
+// 给树上每个节点注入跨类型唯一的 key（type_rawId）
+// 因为 folder/bug 各自的 raw_id 来自不同表，仅用 raw_id 会撞 → setCurrentKey 等会跳错节点
+const injectNodeKeys = (nodes) => {
+  for (const n of nodes) {
+    n._node_key = `${n.type}_${n.raw_id ?? n.id}`
+    if (n.children && n.children.length) injectNodeKeys(n.children)
+  }
+  return nodes
 }
 
 // 获取节点统计信息
@@ -1452,9 +1466,13 @@ const getResolutionText = (resolution) => {
 
 /* 树形组件样式 */
 :deep(.el-tree-node__content) {
-  height: 36px;
+  height: 30px;
   border-radius: 4px;
-  margin-bottom: 2px;
+}
+
+/* 让所有层级的整行都满宽，hover/选中阴影在 1 级、2 级、3 级看起来等宽 */
+:deep(.el-tree-node__children) {
+  padding-left: 0;
 }
 
 :deep(.el-tree-node__content:hover) {
