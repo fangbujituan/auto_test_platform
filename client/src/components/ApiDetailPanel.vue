@@ -545,7 +545,6 @@ defineExpose({ resetEditors })
   flex-direction: column;
   overflow: hidden;
   padding: 16px;
-  gap: 12px;
 }
 
 .api-request-bar {
@@ -898,7 +897,7 @@ defineExpose({ resetEditors })
 /* 可拖拽分割条 */
 .resize-handle {
   flex-shrink: 0;
-  height: 8px;
+  height: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -911,13 +910,14 @@ defineExpose({ resetEditors })
 .resize-handle:hover .resize-handle-bar,
 .resize-handle:active .resize-handle-bar {
   background: #409eff;
-  width: 60px;
+  height: 4px;
+  width: 80%;
 }
 
 .resize-handle-bar {
   width: 36px;
-  height: 3px;
-  border-radius: 2px;
+  height: 2px;
+  border-radius: 1px;
   background: #dcdfe6;
   transition: all 0.2s;
 }
