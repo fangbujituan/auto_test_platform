@@ -107,7 +107,9 @@ def _register_json_charset(app):
 def create_app(config_name=None):
     """创建并配置Flask应用。"""
     if config_name is None:
-        config_name = os.getenv("FLASK_ENV", "development")
+        # 用 `or` 兜底：当 FLASK_ENV 没设置（None）或设置成空串时，
+        # 都退回到 development，避免 config[""] 直接 KeyError 把进程拉崩。
+        config_name = os.getenv("FLASK_ENV") or "development"
 
     app = Flask(__name__)
     app.config.from_object(config[config_name])
