@@ -70,7 +70,6 @@
             :props="treeProps"
             :expand-on-click-node="false"
             :highlight-current="true"
-            default-expand-all
             @node-click="handleNodeClick"
           >
             <template #default="{ node, data }">

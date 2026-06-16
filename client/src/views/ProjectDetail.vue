@@ -63,7 +63,6 @@
             :expand-on-click-node="false"
             :highlight-current="true"
             :indent="0"
-            default-expand-all
             @node-click="handleNodeClick"
             @node-contextmenu="handleNodeContextMenu"
           >
