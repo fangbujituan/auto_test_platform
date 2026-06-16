@@ -929,7 +929,7 @@ defineExpose({ resetEditors })
 
 .response-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; background: #f5f7fa; border-bottom: 1px solid #e4e7ed;
+  padding: 4px 16px; background: #f5f7fa; border-bottom: 1px solid #e4e7ed;
 }
 .response-title { font-size: 14px; font-weight: 600; color: #303133; }
 .status-code-tag { font-size: 14px; font-weight: 600; }
