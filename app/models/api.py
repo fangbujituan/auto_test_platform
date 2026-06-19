@@ -38,7 +38,16 @@ class Api(BaseModel):
     # 绑定的前置URL（持久化记忆）
     prefix_url_id = db.Column(db.Integer, db.ForeignKey("prefix_urls.id", ondelete="SET NULL"),
                               nullable=True, comment="绑定的前置URL ID")
-    
+
+    # === api_engine 引擎能力字段（Phase 2 新增）===
+    # 与 app/engine/api_engine/specs.py 的 AssertionRule / ExtractRule 一一对应
+    assertions = db.Column(db.JSON, nullable=True,
+                           comment="断言规则数组：[{type, config, name?}]")
+    extracts = db.Column(db.JSON, nullable=True,
+                         comment="抽取规则数组：[{name, type, expression, default?}]")
+    timeout = db.Column(db.Integer, nullable=True,
+                        comment="单接口超时秒数；为空时使用引擎默认 30 秒")
+
     # 其他
     status = db.Column(db.Integer, default=1, comment="1: 启用, 0: 禁用")
     category = db.Column(db.String(50), comment="接口分类")
@@ -63,6 +72,10 @@ class Api(BaseModel):
             "module": self.module,
             "service": self.service,
             "prefix_url_id": self.prefix_url_id,
+            # api_engine 字段：未配置时返回空数组 / None，前端不感知 NULL 与 [] 差异
+            "assertions": self.assertions or [],
+            "extracts": self.extracts or [],
+            "timeout": self.timeout,
             "status": self.status,
             "category": self.category,
             "tags": self.tags or [],

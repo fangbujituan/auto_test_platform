@@ -1,107 +1,118 @@
 """
-测试用例执行器服务。
+测试用例执行器（薄壳）。
+
+Phase 4 起内部委托给 ``app.engine.api_engine.ApiEngine.run_test_case``，
+对外接口完全不变：
+
+- ``TestExecutor(timeout=...)``      构造
+- ``run_case(case) -> TestResult``   单条执行
+- ``run_cases(cases) -> list[...]``  批量执行
+
+历史的请求发送、响应解析、断言匹配等逻辑已被引擎吸收：
+- 发请求/解析响应  → ``HttpClient``
+- 状态码断言       → ``StatusCodeAssertion``（自动派生）
+- 响应体部分匹配   → ``JsonSubsetAssertion``（自动派生）
+- 写 ``test_results`` → ``TestResultDbReporter``
+- 状态/错误消息映射 → 与 ``AutomationDbReporter`` 完全一致
 
 作者: yandc
-创建时间: 2026-01-13
+创建时间: 2026-01-13（Phase 4 重构）
 """
-import time
-import requests
+from __future__ import annotations
+
+import logging
+import traceback
+from typing import TYPE_CHECKING
+
+from app.engine.api_engine import LoaderError, get_api_engine
 from app.models.base import db
 from app.models.result import TestResult
 
+if TYPE_CHECKING:
+    from app.models.case import TestCase
+
+logger = logging.getLogger(__name__)
+
 
 class TestExecutor:
-    """执行测试用例并记录结果。"""
+    """测试用例执行器（薄壳）。"""
 
-    def __init__(self, timeout=30):
-        """使用超时设置初始化执行器。"""
+    def __init__(self, timeout: int = 30):
+        # 保留构造参数兼容老代码；超时实际由引擎默认 HttpClient 控制。
         self.timeout = timeout
 
-    def run_case(self, case):
-        """执行单个测试用例并返回结果。"""
-        start_time = time.time()
-        result = TestResult(case_id=case.id)
-        
+    def run_case(self, case: TestCase) -> TestResult:
+        """执行单个测试用例。
+
+        与历史行为对齐：
+        - 返回 ``TestResult`` 实体
+        - 任何异常被吞，转 status="error" 落库
+
+        Raises:
+            从不抛出业务异常；engine 内部异常会兜底成 status=error 的 TestResult
+        """
         try:
-            response = self._send_request(case)
-            duration = time.time() - start_time
-            
-            result.actual_status = response.status_code
-            result.actual_response = self._parse_response(response)
-            result.duration = duration
-            
-            # 验证结果
-            if self._validate(case, response):
-                result.status = "passed"
-            else:
-                result.status = "failed"
-                result.error_message = self._get_validation_error(case, response)
-                
-        except requests.RequestException as e:
-            result.status = "error"
-            result.error_message = str(e)
-            result.duration = time.time() - start_time
-        
+            engine = get_api_engine()
+            return engine.run_test_case(case=case)
+
+        except LoaderError as exc:
+            # case 不存在/查不到；引擎已在 _to_spec 之前就检查
+            return self._record_emergency_failure(
+                case=case,
+                error=f"Loader 错误: {exc.message}",
+            )
+        except Exception as exc:  # noqa: BLE001 顶层兜底
+            # 引擎内部 reporter 已经做了多层 try/except；
+            # 这里只对极端情况兜底，保证调用方能拿到一条 TestResult
+            logger.exception(
+                "[TestExecutor] 引擎执行未捕获异常 case_id=%s: %s",
+                getattr(case, "id", None), exc,
+            )
+            return self._record_emergency_failure(
+                case=case,
+                error=traceback.format_exc(),
+            )
+
+    def run_cases(self, cases: list) -> list[TestResult]:
+        """批量执行测试用例。
+
+        返回与 ``cases`` 输入顺序对齐的 ``TestResult`` 列表。
+        异常用例**不**中断整批；那条用例的 result 会带 status=error。
+        """
+        if not cases:
+            return []
+
+        try:
+            engine = get_api_engine()
+            return engine.run_test_cases(cases=cases)
+
+        except Exception as exc:  # noqa: BLE001 顶层兜底
+            logger.exception("[TestExecutor] 批量执行未捕获异常: %s", exc)
+            # 极端兜底：每条用例落一条 emergency 失败行
+            err = traceback.format_exc()
+            return [self._record_emergency_failure(case=c, error=err) for c in cases]
+
+    # ------------------------------------------------------------------
+    # 内部工具
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _record_emergency_failure(*, case, error: str) -> TestResult:
+        """极端兜底：reporter 也崩了，手动写一条 status=error 行返回。
+
+        与历史 ``run_case`` 异常分支行为一致（status=error + error_message）。
+        """
+        try:
+            db.session.rollback()
+        except Exception:  # pragma: no cover
+            pass
+
+        result = TestResult(
+            case_id=getattr(case, "id", None),
+            status="error",
+            duration=0,
+            error_message=error,
+        )
         db.session.add(result)
         db.session.commit()
         return result
-
-    def run_cases(self, cases):
-        """执行多个测试用例。"""
-        return [self.run_case(case) for case in cases]
-
-    def _send_request(self, case):
-        """根据用例配置发送HTTP请求。"""
-        return requests.request(
-            method=case.method,
-            url=case.url,
-            headers=case.headers or {},
-            params=case.params or {},
-            json=case.body,
-            timeout=self.timeout,
-        )
-
-    def _parse_response(self, response):
-        """解析响应体。"""
-        try:
-            return response.json()
-        except ValueError:
-            return {"text": response.text}
-
-    def _validate(self, case, response):
-        """根据预期值验证响应。"""
-        if case.expected_status and response.status_code != case.expected_status:
-            return False
-        
-        if case.expected_response:
-            actual = self._parse_response(response)
-            return self._match_response(case.expected_response, actual)
-        
-        return True
-
-    def _match_response(self, expected, actual):
-        """检查实际响应是否匹配预期（部分匹配）。"""
-        if isinstance(expected, dict):
-            if not isinstance(actual, dict):
-                return False
-            for key, value in expected.items():
-                if key not in actual:
-                    return False
-                if not self._match_response(value, actual[key]):
-                    return False
-            return True
-        return expected == actual
-
-    def _get_validation_error(self, case, response):
-        """生成验证错误消息。"""
-        errors = []
-        if case.expected_status and response.status_code != case.expected_status:
-            errors.append(
-                f"状态码不匹配: 预期 {case.expected_status}, "
-                f"实际 {response.status_code}"
-            )
-        if case.expected_response:
-            actual = self._parse_response(response)
-            if not self._match_response(case.expected_response, actual):
-                errors.append("响应体不匹配")
-        return "; ".join(errors)

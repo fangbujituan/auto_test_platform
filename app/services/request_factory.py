@@ -23,6 +23,11 @@ class RequestFactory:
         """
         self.timeout = timeout
         self.session = requests.Session()
+        # ATP 是接口测试工具，必须直连目标，不能被系统/环境代理劫持。
+        # 否则用户的内网或本地接口会被代理转发并返回 502。
+        # 如果未来需要支持"通过代理发请求"，应该在每次 execute() 调用时
+        # 通过显式参数传入 proxies，而不是借用系统设置。
+        self.session.trust_env = False
     
     def execute(
         self,

@@ -54,6 +54,10 @@ def auto_migrate(app):
         ("apis", "module", "VARCHAR(200) NULL COMMENT '所属模块'"),
         ("apis", "service", "VARCHAR(200) NULL COMMENT '所属服务'"),
         ("apis", "prefix_url_id", "INT NULL COMMENT '绑定的前置URL ID'"),
+        # === api_engine 引擎能力字段（Phase 2 新增）===
+        ("apis", "assertions", "JSON NULL COMMENT '断言规则数组：[{type,config,name?}]'"),
+        ("apis", "extracts", "JSON NULL COMMENT '抽取规则数组：[{name,type,expression,default?}]'"),
+        ("apis", "timeout", "INT NULL COMMENT '单接口超时秒数；为空时引擎默认 30 秒'"),
     ]
 
     with app.app_context():

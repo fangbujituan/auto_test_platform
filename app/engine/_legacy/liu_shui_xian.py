@@ -1,3 +1,6 @@
+# DEPRECATED: 本模块已废弃，调用方请使用 app.engine.api_engine。
+# 保留在 app.engine._legacy 仅作历史参考；任何业务路径都不再引用。
+# 归档时间：2026-01-20（api_engine 重构 Phase 5）
 """
 @Author: <yandc>
 @Time: 2025/06/07
@@ -7,8 +10,8 @@ import logging
 import requests
 import json
 
-from app.engine.read_env import ReadEnv
-from app.engine.assertion_handler import AssertionHandler, AssertionResult
+from app.engine._legacy.read_env import ReadEnv
+from app.engine._legacy.assertion_handler import AssertionHandler, AssertionResult
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,6 @@
+# DEPRECATED: 本模块已废弃，调用方请使用 app.engine.api_engine。
+# 保留在 app.engine._legacy 仅作历史参考；任何业务路径都不再引用。
+# 归档时间：2026-01-20（api_engine 重构 Phase 5）
 """
 @Author: <yandc>
 @Time: 2025/06/07
@@ -10,7 +13,7 @@ from datetime import datetime
 from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
-from app.engine.liu_shui_xian import TestCaseStepResult  # 引入 TestCaseStepResult 用于类型提示
+from app.engine._legacy.liu_shui_xian import TestCaseStepResult  # 引入 TestCaseStepResult 用于类型提示
 
 
 class TestReportGenerator:
@@ -112,8 +115,8 @@ class TestReportGenerator:
 
 if __name__ == '__main__':
     # 模拟一些测试结果
-    from app.engine.liu_shui_xian import TestCaseStepResult
-    from app.engine.assertion_handler import AssertionResult
+    from app.engine._legacy.liu_shui_xian import TestCaseStepResult
+    from app.engine._legacy.assertion_handler import AssertionResult
 
     # 模拟第一个用例结果
     step1_results_case1 = TestCaseStepResult(

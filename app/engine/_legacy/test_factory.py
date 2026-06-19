@@ -1,3 +1,6 @@
+# DEPRECATED: 本模块已废弃，调用方请使用 app.engine.api_engine。
+# 保留在 app.engine._legacy 仅作历史参考；任何业务路径都不再引用。
+# 归档时间：2026-01-20（api_engine 重构 Phase 5）
 """
 @Author: <yandc>
 @Time: 2025/06/07
@@ -10,11 +13,11 @@ import logging
 from app.services.api_service import ApiService
 
 logger = logging.getLogger(__name__)
-from app.engine.read_env import ReadEnv
-from app.engine.read_case import FormattingData
-from app.engine.assertion_handler import AssertionHandler
-from app.engine.liu_shui_xian import LiuShuiXian
-from app.engine.report_generator import TestReportGenerator
+from app.engine._legacy.read_env import ReadEnv
+from app.engine._legacy.read_case import FormattingData
+from app.engine._legacy.assertion_handler import AssertionHandler
+from app.engine._legacy.liu_shui_xian import LiuShuiXian
+from app.engine._legacy.report_generator import TestReportGenerator
 
 
 # 假设从数据库获取用例数据，这里用模拟数据代替
