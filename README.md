@@ -20,12 +20,14 @@
 
 引擎层按测试类型拆分为独立子引擎，统一负责"用例 → 脚本 → 执行 → 报告"的闭环：
 
-| 子引擎 | 目录 | 职责 |
-|--------|------|------|
-| API 引擎 | `api_engine` | 接口用例执行、请求组装、断言、报告（现有流水线模块逐步归并至此） |
-| UI 引擎 | `ui_engine` | Web UI 用例执行（Selenium / Playwright 方向） |
-| App 引擎 | `app_engine` | 移动 App 用例执行（Appium 方向，预留） |
-| 性能引擎 | `perf_engine` | 性能/压测执行与指标采集（Locust / JMeter 方向） |
+| 子引擎 | 目录 | 职责 | 状态 |
+|--------|------|------|------|
+| API 引擎 | `api_engine` | 接口用例执行、变量渲染、断言、抽取、报告，统一收敛单接口/多接口/自动化任务/用例执行四条路径 | ✅ 已落地 |
+| UI 引擎 | `ui_engine` | Web UI 用例执行（Playwright）| ✅ 已落地 |
+| App 引擎 | `app_engine` | 移动 App 用例执行（Appium 方向，预留） | ⬜ 规划中 |
+| 性能引擎 | `perf_engine` | 性能/压测执行与指标采集（Locust / JMeter 方向） | ⬜ 规划中 |
+
+> `api_engine` 已替代早期的 `liu_shui_xian.py` / `test_factory.py` 流水线实现；老代码归档在 `app/engine/_legacy/`。详见 `app/engine/api_engine/README.md`。
 
 ### AI 与 Agent 协作（app/agents）
 
@@ -122,10 +124,11 @@ auto_test_platform/
 │   │   ├── ai_service.py     # 统一 AI 调用服务
 │   │   └── ai_adapters.py    # AI 提供商适配器（OpenAI / DashScope / Ollama）
 │   ├── engine/               # 执行引擎（按测试类型拆分子引擎）
-│   │   ├── api_engine/       # 接口自动化引擎（api-engine）
-│   │   ├── ui_engine/        # Web UI 自动化引擎（UI-engine）
-│   │   ├── app_engine/       # 移动 App 自动化引擎（app-engine，预留）
-│   │   └── perf_engine/      # 性能/压测引擎（性能引擎）
+│   │   ├── api_engine/       # 接口自动化引擎（统一入口，单/多/自动化/用例 4 条路径都委托至此）
+│   │   ├── ui_engine/        # Web UI 自动化引擎（Playwright）
+│   │   ├── app_engine/       # 移动 App 自动化引擎（Appium，预留）
+│   │   ├── perf_engine/      # 性能/压测引擎（规划中）
+│   │   └── _legacy/          # 已归档：早期接口流水线（liu_shui_xian / test_factory 等 6 文件）
 │   ├── agents/               # 基于 LangGraph 的多 Agent 协作
 │   ├── tools/                # 工具模块
 │   │   ├── toolbox/          # 工具箱（测试用例生成器等）
@@ -156,7 +159,7 @@ auto_test_platform/
 | roles | 角色表（admin/owner/member/viewer） |
 | permissions | 权限表（resource:action） |
 | role_permissions | 角色权限关联表 |
-| apis | API 接口表（请求配置） |
+| apis | API 接口表（请求配置；含 Phase 2 新增的 assertions / extracts / timeout 字段，对接 api_engine）|
 | api_folders | API 目录表（树形结构） |
 | test_cases | API 测试用例表（HTTP 请求、断言规则） |
 | test_case_management | 测试用例管理表（功能用例） |
@@ -450,6 +453,13 @@ taskkill /F /PID <进程ID>
 - [x] Web UI 录制回放 Agent（基于 Playwright MCP，已生成可执行 TS 脚本）
 - [x] UI 代码生成管线 P0–P3 主体优化（完成于 2026-03-24，详见 `ai-server/docs/coding/`）
 - [x] Token 消耗统计 v1（接入 LangChain Callback，存 SQLite）
+- [x] **接口测试统一执行引擎 `api_engine` 落地**（5 个 Phase 27 个任务，spec：`.kiro/specs/api-engine/`）
+  - 单接口测试 / 多接口编排 / 自动化任务 / 用例执行 4 条路径全部收敛到同一引擎
+  - 6 种内置断言（含 `json_subset` 部分匹配）+ 3 种内置抽取器，注册中心式可扩展
+  - 链式抽取（前一接口响应字段可被后续接口 `{{var}}` 引用）
+  - 失败策略可插拔（`continue` / `fail_fast`）
+  - 老 `liu_shui_xian` / `test_factory` / `read_env` / `read_case` / `assertion_handler` / `report_generator` 已归档至 `app/engine/_legacy/`
+  - `apis` 表新增 `assertions` / `extracts` / `timeout` 三列承载断言抽取规则
 
 ### P0 — 立即推进（基本零 token，是后续一切判断的基础）
 
@@ -499,7 +509,7 @@ taskkill /F /PID <进程ID>
   - [ ] 装配 `perf_agent`，调引擎 `app/engine/perf_engine`
 - [ ] **db-mcp 接入**（测试数据准备 / 断言数据落库，复用 mcp-server-mysql）
 - [ ] **执行引擎增强与补全**
-  - [ ] API 引擎（api_engine）能力补全
+  - [x] API 引擎（api_engine）能力补全 ✅ 2026-06（详见已完成清单）
   - [ ] UI 引擎（ui_engine）补全（对接 recording_agent 产物）
   - [ ] 性能引擎（perf_engine）—— 性能用例 + 脚本自动生成与执行
 - [ ] **页面对话框驱动的用例 + 脚本自动生成（UI / API / 性能）**

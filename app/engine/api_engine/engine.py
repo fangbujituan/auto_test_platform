@@ -10,18 +10,22 @@ ApiEngine：对外的统一门面。
         project_id=1,
     )
 
-各入口的实现节奏（与 spec tasks 对齐）：
+入口一览：
 
-| 入口                     | Phase | 数据源                          |
-|--------------------------|-------|---------------------------------|
-| run_inline_request       | 1     | 前端 dict（不入库）              |
-| run_inline_sequence      | 1     | 前端 dict 列表（不入库）          |
-| run_single_api           | 2     | apis 表 + ApiModelLoader        |
-| run_api_sequence         | 2     | apis 表 + ApiModelLoader        |
-| run_test_case            | 4     | test_cases 表 + TestCaseLoader  |
-| run_automation_task      | 3     | automation_tasks + Loader       |
+| 入口                  | 数据源                         | 返回类型                       |
+|-----------------------|--------------------------------|--------------------------------|
+| run_inline_request    | 前端 dict（不入库）            | StepResult                     |
+| run_inline_sequence   | 前端 dict 列表                  | CollectionResult               |
+| run_single_api        | apis 表 + ApiModelLoader       | StepResult                     |
+| run_api_sequence      | apis 表 + ApiModelLoader       | CollectionResult               |
+| run_test_case         | test_cases 表 + TestCaseLoader | TestResult (ORM)               |
+| run_test_cases        | test_cases 批量                | list[TestResult]               |
+| run_automation_task   | automation_tasks 完整流程       | TaskExecution (ORM)            |
 
-未实现入口 SHALL 抛 NotImplementedError 提示对应 Phase 任务。
+所有入口的执行管道统一走 SequenceRunner（单接口 = 长度为 1 的 collection），
+ORM 返回的入口由对应 DbReporter 写库；纯 ad-hoc 入口仅打控制台日志。
+
+详见同目录 README.md 与 .kiro/specs/api-engine/。
 
 作者: yandc
 """
@@ -424,10 +428,6 @@ class ApiEngine:
             return case.project_id if case else 0
         except Exception:  # pragma: no cover
             return 0
-
-    # ==================================================================
-    # 占位入口（已无；所有阶段入口都已实现）
-    # ==================================================================
 
     # ==================================================================
     # 内部工具

@@ -9,19 +9,21 @@ api_engine：接口测试统一执行引擎。
 - ``context``     ExecutionContext，按 run_id 隔离的上下文
 - ``variables``   变量解析（{{var}} 渲染、prefix_url 解析、global params 合并）
 - ``http``        HttpClient，唯一的 HTTP IO 出口
-- ``assertions``  断言注册中心 + 内置断言
-- ``extractors``  抽取注册中心 + 内置抽取器
-- ``strategies``  失败策略
+- ``assertions``  断言注册中心 + 6 种内置断言
+- ``extractors``  抽取注册中心 + 3 种内置抽取器
+- ``strategies``  失败策略（ContinueOnError / FailFast）
 - ``runner``      StepExecutor + SequenceRunner
-- ``loaders``     数据适配层（数据库模型 / dict → spec），逐步加入
-- ``reporters``   报告器（控制台、数据库）
+- ``loaders``     数据适配层（dict / apis / test_cases / automation_tasks → spec）
+- ``reporters``   报告器（控制台 / AutomationDb / TestResultDb）
 
 调用方仅需：
 
     from app.engine.api_engine import ApiEngine, get_api_engine
 
-老的 ``app/engine/liu_shui_xian.py`` 与 ``app/engine/test_factory.py``
-在本期中**仅作历史参考**，不被本包引用，后续会迁入 ``app/engine/_legacy/``。
+老的接口测试流水线代码（``liu_shui_xian.py`` / ``test_factory.py`` /
+``read_env.py`` / ``read_case.py`` / ``assertion_handler.py`` /
+``report_generator.py``）已迁入 ``app/engine/_legacy/``，仅作历史归档，
+不被任何业务路径引用，import 时会触发 ``DeprecationWarning``。
 
 作者: yandc
 """
