@@ -219,6 +219,16 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { VideoPlay, Select, FolderOpened, Clock, RefreshRight, ArrowRight, Loading } from '@element-plus/icons-vue'
 import KeyValueEditor from './KeyValueEditor.vue'
 import JsonEditor from './JsonEditor.vue'
+import {
+  getRequestTab, setRequestTab,
+  getResponseTab, setResponseTab,
+} from './_apiPanelState'
+
+// 父组件用 :key="activeTabId" 切换接口时，本组件实例会被销毁重建。
+// 由 _apiPanelState 模块按 apiId 维护每个接口自己的 tab 选择：
+//   - 接口首次打开 → 默认 params/body
+//   - 用户切了什么 → 这个接口下次回来还是那里，互不影响其他接口
+//   - 刷新页面 → 全部回到默认
 
 const props = defineProps({
   editableApi: { type: Object, required: true },
@@ -278,21 +288,19 @@ const resolvedBaseUrl = computed(() => {
   return ''
 })
 
-const activeRequestTab = ref('params')
-const activeResponseTab = ref('body')
+// 当前接口的标识：组件被销毁重建时随 props 切换；优先用 DB id，新建未保存的没记忆
+const apiKey = computed(() => props.apiData?.id ?? null)
+
+const activeRequestTab = ref(getRequestTab(apiKey.value))
+const activeResponseTab = ref(getResponseTab(apiKey.value))
 const descExpanded = ref(false)
 const paramsEditorRef = ref(null)
 const headersEditorRef = ref(null)
 const bodyFormEditorRef = ref(null)
 
-// 切换接口时，如果 body 有值则自动定位到 Body 页签
-watch(() => props.apiData, () => {
-  const body = props.editableApi?.body
-  const hasBody = body && typeof body === 'object'
-    ? Object.keys(body).length > 0
-    : !!body
-  activeRequestTab.value = hasBody ? 'body' : 'params'
-}, { immediate: true })
+// 用户切换 tab 时同步到模块级映射，下次该接口被重新打开时取得到
+watch(activeRequestTab, (val) => setRequestTab(apiKey.value, val))
+watch(activeResponseTab, (val) => setResponseTab(apiKey.value, val))
 
 // ── 可拖拽分割 ──
 const requestHeight = ref(280)
