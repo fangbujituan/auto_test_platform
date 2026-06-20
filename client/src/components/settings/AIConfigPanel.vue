@@ -45,12 +45,12 @@
                 :loading="testingProviderId === row.id"
                 @click="handleTestSaved(row)"
               >测试连接</el-button>
-              <el-button
+              <!-- <el-button
                 size="small"
                 type="warning"
                 :disabled="row.is_default"
                 @click="handleSetDefault(row)"
-              >设为默认</el-button>
+              >设为默认</el-button> -->
               <el-button size="small" type="danger" @click="handleDeleteProvider(row)">删除</el-button>
             </template>
           </el-table-column>
