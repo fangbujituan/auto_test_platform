@@ -7,6 +7,7 @@ API目录管理路由。
 from flask import request, jsonify
 from flask.views import MethodView
 from flask_smorest import Blueprint
+from sqlalchemy import and_, or_
 from app.models.base import db
 from app.models.api_folder import ApiFolder
 from app.models.api import Api
@@ -22,6 +23,33 @@ folder_blp = Blueprint(
 
 # 向后兼容
 folder_bp = folder_blp
+
+
+_VALID_FOLDER_TYPES = {
+    ApiFolder.TYPE_API,
+    ApiFolder.TYPE_TESTCASE,
+    ApiFolder.TYPE_BUG,
+    ApiFolder.TYPE_AUTOMATION,
+}
+
+
+def _resolve_folder_type(raw, default=ApiFolder.TYPE_API):
+    """规范化前端传入的 type 参数，无效值落回默认。"""
+    if raw is None or raw == "":
+        return default
+    raw = str(raw).strip().lower()
+    if raw in _VALID_FOLDER_TYPES:
+        return raw
+    return default
+
+
+def _folder_type_filter(query, folder_type):
+    """给 ApiFolder 查询追加 type 过滤；老数据 type 为空时按 'api' 处理。"""
+    if folder_type == ApiFolder.TYPE_API:
+        return query.filter(
+            or_(ApiFolder.type == ApiFolder.TYPE_API, ApiFolder.type.is_(None))
+        )
+    return query.filter(ApiFolder.type == folder_type)
 
 
 @folder_blp.route("/init")
@@ -134,16 +162,30 @@ class FoldersView(MethodView):
     @login_required
     @check_project_permission('read')
     def get(self, project_id):
-        """获取项目的目录树结构。"""
-        root_folders = ApiFolder.query.filter_by(
+        """获取项目的目录树结构（按 type 过滤）。"""
+        folder_type = _resolve_folder_type(request.args.get("type"))
+
+        query = ApiFolder.query.filter_by(
             project_id=project_id, parent_id=None
-        ).order_by(ApiFolder.sort_order).all()
+        )
+        query = _folder_type_filter(query, folder_type)
+        root_folders = query.order_by(ApiFolder.sort_order).all()
 
-        tree = [
-            folder.to_dict(include_children=True)
-            for folder in root_folders
-        ]
+        # to_dict 的 include_children 没有 type 过滤；这里直接收集子目录是同 type 的
+        # 对于 type=api（老数据全是 api 类型），等价于现状
+        def _walk(folder):
+            node = folder.to_dict()
+            children = (
+                ApiFolder.query
+                .filter_by(project_id=project_id, parent_id=folder.id)
+            )
+            children = _folder_type_filter(children, folder_type)
+            node["children"] = [
+                _walk(c) for c in children.order_by(ApiFolder.sort_order).all()
+            ]
+            return node
 
+        tree = [_walk(f) for f in root_folders]
         return jsonify({"code": 0, "data": tree})
 
     @folder_blp.response(200, MessageResponseSchema)
@@ -152,15 +194,34 @@ class FoldersView(MethodView):
     @check_project_permission('create')
     def post(self, project_id):
         """创建目录。"""
-        data = request.get_json()
+        data = request.get_json() or {}
+        folder_type = _resolve_folder_type(data.get("type"))
+
+        # 父目录归属与类型一致性校验
+        parent_id = data.get("parent_id")
+        if parent_id:
+            parent = ApiFolder.query.filter_by(
+                id=parent_id, project_id=project_id
+            ).first()
+            if not parent:
+                return jsonify({
+                    "code": 1, "message": "父目录不存在"
+                }), 404
+            parent_type = parent.type or ApiFolder.TYPE_API
+            if parent_type != folder_type:
+                return jsonify({
+                    "code": 1,
+                    "message": f"父目录类型不匹配: 父={parent_type}, 当前={folder_type}",
+                }), 400
 
         try:
             folder = ApiFolder(
                 name=data.get("name"),
                 description=data.get("description"),
                 project_id=project_id,
-                parent_id=data.get("parent_id"),
-                sort_order=data.get("sort_order", 0)
+                parent_id=parent_id,
+                sort_order=data.get("sort_order", 0),
+                type=folder_type,
             )
 
             db.session.add(folder)
@@ -182,14 +243,32 @@ class FoldersView(MethodView):
 
 @folder_blp.route("/tree")
 class FolderTreeView(MethodView):
-    """完整目录树（包含接口）"""
+    """完整目录树（默认含接口；type=automation 时含自动化任务）"""
 
     @folder_blp.response(200, MessageResponseSchema)
     @folder_blp.alt_response(500, schema=MessageResponseSchema, description="获取失败")
     @login_required
     @check_project_permission('read')
     def get(self, project_id):
-        """获取完整的目录树（包含接口），支持多级嵌套。"""
+        """获取完整的目录树。
+
+        Query 参数：
+        - ``type`` ：api(默认) / automation
+        """
+        folder_type = _resolve_folder_type(request.args.get("type"))
+
+        if folder_type == ApiFolder.TYPE_AUTOMATION:
+            return self._build_automation_tree(project_id)
+
+        # 默认：接口目录树（与历史行为完全一致，并加 type=api 过滤）
+        return self._build_api_tree(project_id)
+
+    # ------------------------------------------------------------------
+    # 接口目录树（原实现，仅追加 type 过滤）
+    # ------------------------------------------------------------------
+
+    def _build_api_tree(self, project_id):
+        """构建接口目录树（type=api）。"""
 
         def build_tree_node(folder):
             """递归构建包含接口的树节点。"""
@@ -199,21 +278,22 @@ class FolderTreeView(MethodView):
                 'name': folder.name,
                 'description': folder.description,
                 'type': 'folder',
+                'folder_type': folder.type or ApiFolder.TYPE_API,
                 'project_id': folder.project_id,
                 'parent_id': folder.parent_id,
                 'sort_order': folder.sort_order,
-                'created_at': folder.created_at.strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
-                'updated_at': folder.updated_at.strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                ),
+                'created_at': folder.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                'updated_at': folder.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
                 'children': []
             }
 
-            child_folders = ApiFolder.query.filter_by(
-                project_id=project_id, parent_id=folder.id
-            ).order_by(
+            child_query = _folder_type_filter(
+                ApiFolder.query.filter_by(
+                    project_id=project_id, parent_id=folder.id
+                ),
+                ApiFolder.TYPE_API,
+            )
+            child_folders = child_query.order_by(
                 ApiFolder.sort_order, ApiFolder.created_at
             ).all()
 
@@ -227,39 +307,18 @@ class FolderTreeView(MethodView):
             ).order_by(Api.created_at.desc()).all()
 
             for api in apis:
-                api_node = {
-                    'id': f'api_{api.id}',
-                    'raw_id': api.id,
-                    'name': api.name,
-                    'description': api.description,
-                    'type': 'api',
-                    'method': api.method,
-                    'path': api.path,
-                    'base_url': api.base_url,
-                    'folder_id': api.folder_id,
-                    'category': api.category,
-                    'status': api.status,
-                    'headers': api.headers or {},
-                    'params': api.params or {},
-                    'body': api.body or {},
-                    'body_type': api.body_type or 'json',
-                    'response_example': api.response_example or {},
-                    'created_at': api.created_at.strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                    'updated_at': api.updated_at.strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
-                    'children': []
-                }
-                node['children'].append(api_node)
+                node['children'].append(self._api_to_node(api))
 
             return node
 
         try:
-            root_folders = ApiFolder.query.filter_by(
-                project_id=project_id, parent_id=None
-            ).order_by(
+            root_query = _folder_type_filter(
+                ApiFolder.query.filter_by(
+                    project_id=project_id, parent_id=None
+                ),
+                ApiFolder.TYPE_API,
+            )
+            root_folders = root_query.order_by(
                 ApiFolder.sort_order, ApiFolder.created_at
             ).all()
 
@@ -276,41 +335,13 @@ class FolderTreeView(MethodView):
                     'name': '未分类',
                     'description': '未分配到目录的接口',
                     'type': 'folder',
+                    'folder_type': ApiFolder.TYPE_API,
                     'is_virtual': True,
                     'project_id': project_id,
                     'parent_id': None,
                     'sort_order': 999,
-                    'children': []
+                    'children': [self._api_to_node(api) for api in uncategorized_apis]
                 }
-
-                for api in uncategorized_apis:
-                    api_node = {
-                        'id': f'api_{api.id}',
-                        'raw_id': api.id,
-                        'name': api.name,
-                        'description': api.description,
-                        'type': 'api',
-                        'method': api.method,
-                        'path': api.path,
-                        'base_url': api.base_url,
-                        'folder_id': api.folder_id,
-                        'category': api.category,
-                        'status': api.status,
-                        'headers': api.headers or {},
-                        'params': api.params or {},
-                        'body': api.body or {},
-                        'body_type': api.body_type or 'json',
-                        'response_example': api.response_example or {},
-                        'created_at': api.created_at.strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
-                        'updated_at': api.updated_at.strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
-                        'children': []
-                    }
-                    uncategorized_node['children'].append(api_node)
-
                 tree.append(uncategorized_node)
 
             return jsonify({"code": 0, "data": tree})
@@ -320,6 +351,124 @@ class FolderTreeView(MethodView):
                 "code": 1,
                 "message": f"获取目录树失败: {str(e)}"
             }), 500
+
+    @staticmethod
+    def _api_to_node(api):
+        """API ORM → 树节点字典。"""
+        return {
+            'id': f'api_{api.id}',
+            'raw_id': api.id,
+            'name': api.name,
+            'description': api.description,
+            'type': 'api',
+            'method': api.method,
+            'path': api.path,
+            'base_url': api.base_url,
+            'folder_id': api.folder_id,
+            'category': api.category,
+            'status': api.status,
+            'headers': api.headers or {},
+            'params': api.params or {},
+            'body': api.body or {},
+            'body_type': api.body_type or 'json',
+            'response_example': api.response_example or {},
+            'created_at': api.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            'updated_at': api.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+            'children': []
+        }
+
+    # ------------------------------------------------------------------
+    # 自动化目录树（type=automation）
+    # ------------------------------------------------------------------
+
+    def _build_automation_tree(self, project_id):
+        """构建自动化任务目录树。每个目录节点的 children 包含子目录与自动化任务节点。"""
+        from app.models.automation import AutomationTask
+
+        try:
+            def build_node(folder):
+                node = {
+                    'id': f'folder_{folder.id}',
+                    'raw_id': folder.id,
+                    'name': folder.name,
+                    'description': folder.description,
+                    'type': 'folder',
+                    'folder_type': ApiFolder.TYPE_AUTOMATION,
+                    'project_id': folder.project_id,
+                    'parent_id': folder.parent_id,
+                    'sort_order': folder.sort_order,
+                    'created_at': folder.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    'updated_at': folder.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    'children': []
+                }
+                child_folders = ApiFolder.query.filter_by(
+                    project_id=project_id, parent_id=folder.id,
+                    type=ApiFolder.TYPE_AUTOMATION,
+                ).order_by(
+                    ApiFolder.sort_order, ApiFolder.created_at
+                ).all()
+                for cf in child_folders:
+                    node['children'].append(build_node(cf))
+
+                tasks = AutomationTask.query.filter_by(
+                    project_id=project_id, folder_id=folder.id, is_deleted=0,
+                ).order_by(AutomationTask.created_at.desc()).all()
+                for t in tasks:
+                    node['children'].append(self._task_to_node(t))
+                return node
+
+            root_folders = ApiFolder.query.filter_by(
+                project_id=project_id, parent_id=None,
+                type=ApiFolder.TYPE_AUTOMATION,
+            ).order_by(
+                ApiFolder.sort_order, ApiFolder.created_at
+            ).all()
+            tree = [build_node(f) for f in root_folders]
+
+            uncategorized_tasks = AutomationTask.query.filter_by(
+                project_id=project_id, folder_id=None, is_deleted=0,
+            ).order_by(AutomationTask.created_at.desc()).all()
+            if uncategorized_tasks:
+                tree.append({
+                    'id': 'folder_uncategorized_automation',
+                    'raw_id': 0,
+                    'name': '未分类',
+                    'description': '未分配到目录的自动化任务',
+                    'type': 'folder',
+                    'folder_type': ApiFolder.TYPE_AUTOMATION,
+                    'is_virtual': True,
+                    'project_id': project_id,
+                    'parent_id': None,
+                    'sort_order': 999,
+                    'children': [self._task_to_node(t) for t in uncategorized_tasks],
+                })
+
+            return jsonify({"code": 0, "data": tree})
+
+        except Exception as e:
+            return jsonify({
+                "code": 1,
+                "message": f"获取自动化目录树失败: {str(e)}"
+            }), 500
+
+    @staticmethod
+    def _task_to_node(task):
+        """AutomationTask ORM → 树节点字典。"""
+        return {
+            'id': f'automation_{task.id}',
+            'raw_id': task.id,
+            'name': task.name,
+            'task_no': task.task_no,
+            'description': task.description,
+            'type': 'automation',
+            'trigger_type': task.trigger_type,
+            'status': task.status,
+            'folder_id': task.folder_id,
+            'environment_id': task.environment_id,
+            'created_at': task.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            'updated_at': task.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+            'children': []
+        }
 
 
 @folder_blp.route("/<int:folder_id>")
@@ -376,13 +525,22 @@ class FolderDetailView(MethodView):
             }), 400
 
         try:
-            # 将目录下的接口和Bug移到未分类
-            Api.query.filter_by(folder_id=folder_id).update(
-                {"folder_id": None}
-            )
-            Bug.query.filter_by(folder_id=folder_id).update(
-                {"folder_id": None}
-            )
+            folder_type = folder.type or ApiFolder.TYPE_API
+
+            if folder_type == ApiFolder.TYPE_AUTOMATION:
+                # 自动化目录：把目录下任务移到未分类
+                from app.models.automation import AutomationTask
+                AutomationTask.query.filter_by(
+                    folder_id=folder_id
+                ).update({"folder_id": None})
+            else:
+                # 接口/Bug 共用 api_folders（老数据 type='api'）
+                Api.query.filter_by(folder_id=folder_id).update(
+                    {"folder_id": None}
+                )
+                Bug.query.filter_by(folder_id=folder_id).update(
+                    {"folder_id": None}
+                )
 
             db.session.delete(folder)
             db.session.commit()

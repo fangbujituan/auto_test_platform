@@ -36,10 +36,32 @@ class AutomationTask(BaseModel):
     name = db.Column(db.String(200), nullable=False, comment="任务名称")
     description = db.Column(db.Text, comment="任务描述")
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    folder_id = db.Column(
+        db.Integer,
+        db.ForeignKey("api_folders.id"),
+        nullable=True,
+        index=True,
+        comment="所属自动化目录ID（type=automation 的 api_folders 行）",
+    )
     trigger_type = db.Column(db.String(20), default="manual", comment="触发类型: manual/cron/webhook")
     cron_expression = db.Column(db.String(100), comment="Cron表达式")
     webhook_token = db.Column(db.String(100), unique=True, comment="Webhook令牌")
     environment_id = db.Column(db.Integer, db.ForeignKey("environments.id"), nullable=True)
+
+    # 执行配置
+    loop_count = db.Column(
+        db.Integer, nullable=False, default=1, server_default="1",
+        comment="循环执行次数，>=1",
+    )
+    fail_strategy = db.Column(
+        db.String(20), nullable=False, default="continue", server_default="continue",
+        comment="失败策略: continue(遇错继续) / stop(遇错终止)",
+    )
+    interval_seconds = db.Column(
+        db.Float, nullable=False, default=0, server_default="0",
+        comment="步骤间隔时间（秒），>=0",
+    )
+
     status = db.Column(db.Integer, default=1, comment="1:启用 0:禁用")
     is_deleted = db.Column(db.Integer, default=0, comment="0:正常 1:已删除")
 
@@ -59,10 +81,14 @@ class AutomationTask(BaseModel):
             "name": self.name,
             "description": self.description,
             "project_id": self.project_id,
+            "folder_id": self.folder_id,
             "trigger_type": self.trigger_type,
             "cron_expression": self.cron_expression,
             "webhook_token": self.webhook_token,
             "environment_id": self.environment_id,
+            "loop_count": self.loop_count if self.loop_count is not None else 1,
+            "fail_strategy": self.fail_strategy or "continue",
+            "interval_seconds": float(self.interval_seconds) if self.interval_seconds is not None else 0.0,
             "status": self.status,
             "is_deleted": self.is_deleted,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
@@ -71,14 +97,32 @@ class AutomationTask(BaseModel):
 
 
 class AutomationTaskCase(BaseModel):
-    """任务-用例关联模型。"""
+    """任务-用例/接口关联模型。
+
+    三种引用方式互斥（按优先级 case_mgmt_id > case_id > api_id 解析）：
+    - api_id：直接挂"接口"作为执行步骤
+    - case_id：挂"接口测试用例"（test_cases 表）
+    - case_mgmt_id：挂"测试用例管理"项（暂未在引擎层实现）
+    """
 
     __tablename__ = "automation_task_cases"
 
     task_id = db.Column(db.Integer, db.ForeignKey("automation_tasks.id"), nullable=False)
     case_id = db.Column(db.Integer, db.ForeignKey("test_cases.id"), nullable=True, comment="API测试用例ID")
     case_mgmt_id = db.Column(db.Integer, db.ForeignKey("test_case_management.id"), nullable=True, comment="测试用例管理ID")
+    api_id = db.Column(db.Integer, db.ForeignKey("apis.id"), nullable=True, comment="直接关联的接口ID")
     sort_order = db.Column(db.Integer, default=0, comment="执行顺序")
+
+    @property
+    def ref_type(self) -> str:
+        """返回当前关联类型：api / case / case_mgmt / unknown。"""
+        if self.case_mgmt_id:
+            return "case_mgmt"
+        if self.case_id:
+            return "case"
+        if self.api_id:
+            return "api"
+        return "unknown"
 
     def to_dict(self):
         """转换为字典。"""
@@ -87,6 +131,8 @@ class AutomationTaskCase(BaseModel):
             "task_id": self.task_id,
             "case_id": self.case_id,
             "case_mgmt_id": self.case_mgmt_id,
+            "api_id": self.api_id,
+            "ref_type": self.ref_type,
             "sort_order": self.sort_order,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S"),

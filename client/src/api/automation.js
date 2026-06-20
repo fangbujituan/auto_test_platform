@@ -90,3 +90,42 @@ export function getExecutionStatistics(taskId) {
     method: 'get'
   })
 }
+
+// ===== 关联的接口/用例（cases）管理 =====
+
+/** 获取任务关联的接口/用例列表 */
+export function getAutomationCases(projectId, taskId) {
+  return request({
+    url: `/projects/${projectId}/automations/${taskId}/cases`,
+    method: 'get'
+  })
+}
+
+/**
+ * 批量导入接口/用例到任务。
+ * @param {{items: {kind:'api'|'case'|'case_mgmt', id:number}[], append?: boolean}} payload
+ */
+export function importAutomationCases(projectId, taskId, payload) {
+  return request({
+    url: `/projects/${projectId}/automations/${taskId}/cases`,
+    method: 'post',
+    data: payload
+  })
+}
+
+/** 删除单条任务关联记录（不会删除原接口/用例） */
+export function deleteAutomationCase(projectId, taskId, caseRowId) {
+  return request({
+    url: `/projects/${projectId}/automations/${taskId}/cases/${caseRowId}`,
+    method: 'delete'
+  })
+}
+
+/** 批量调整执行顺序：order=[{id, sort_order}] */
+export function reorderAutomationCases(projectId, taskId, order) {
+  return request({
+    url: `/projects/${projectId}/automations/${taskId}/cases/order`,
+    method: 'put',
+    data: { order }
+  })
+}

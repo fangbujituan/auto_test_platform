@@ -78,6 +78,9 @@ class TestCaseTreeView(MethodView):
 
             child_folders = ApiFolder.query.filter_by(
                 project_id=project_id, parent_id=folder.id
+            ).filter(
+                (ApiFolder.type != ApiFolder.TYPE_AUTOMATION)
+                | (ApiFolder.type.is_(None))
             ).order_by(
                 ApiFolder.sort_order, ApiFolder.created_at
             ).all()
@@ -119,6 +122,9 @@ class TestCaseTreeView(MethodView):
         try:
             root_folders = ApiFolder.query.filter_by(
                 project_id=project_id, parent_id=None
+            ).filter(
+                (ApiFolder.type != ApiFolder.TYPE_AUTOMATION)
+                | (ApiFolder.type.is_(None))
             ).order_by(
                 ApiFolder.sort_order, ApiFolder.created_at
             ).all()

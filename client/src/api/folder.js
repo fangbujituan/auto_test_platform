@@ -1,18 +1,29 @@
 import request from './request'
 
-// 获取目录列表
-export function getFolders(projectId) {
+// 获取目录列表（默认 type=api，可传 type=automation 等）
+export function getFolders(projectId, params = {}) {
   return request({
     url: `/projects/${projectId}/folders`,
-    method: 'get'
+    method: 'get',
+    params
   })
 }
 
 // 获取目录树（包含接口）
-export function getFolderTree(projectId) {
+export function getFolderTree(projectId, params = {}) {
   return request({
     url: `/projects/${projectId}/folders/tree`,
-    method: 'get'
+    method: 'get',
+    params
+  })
+}
+
+// 获取自动化目录树（包含自动化任务节点）
+export function getAutomationFolderTree(projectId) {
+  return request({
+    url: `/projects/${projectId}/folders/tree`,
+    method: 'get',
+    params: { type: 'automation' }
   })
 }
 
@@ -40,7 +51,7 @@ export function initProjectFolders(projectId) {
   })
 }
 
-// 创建目录
+// 创建目录（可指定 type，默认 'api'）
 export function createFolder(projectId, data) {
   return request({
     url: `/projects/${projectId}/folders`,
