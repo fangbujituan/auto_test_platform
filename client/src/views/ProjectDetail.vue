@@ -1537,10 +1537,25 @@ const formatResponseBody = (body) => {
 }
 
 .panel-header {
-  padding: 12px;
+  height: 40px;
+  padding: 0 8px;
   border-bottom: 1px solid var(--el-border-color-light);
   display: flex;
+  align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* 搜索框对齐 28px，和 api-tabs 内部元素同高 */
+.panel-header :deep(.el-input__wrapper) {
+  height: 28px;
+  padding: 0 8px;
+}
+
+.panel-header :deep(.el-input__inner) {
+  height: 28px;
+  line-height: 28px;
 }
 
 .header-actions {
@@ -1549,12 +1564,12 @@ const formatResponseBody = (body) => {
 }
 
 .header-actions .add-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .filter-bar {
