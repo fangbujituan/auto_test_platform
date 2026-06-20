@@ -26,7 +26,7 @@
           </el-input>
           
           <div class="header-actions">
-            <el-dropdown @command="handleAddAction" trigger="click">
+            <el-dropdown @command="handleAddAction" trigger="click" placement="bottom-start">
               <el-button type="primary" size="small" class="add-btn">
                 <el-icon><Plus /></el-icon>
               </el-button>
