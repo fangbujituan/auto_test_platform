@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本对比工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            padding: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .tool-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .controls {
+            display: flex;
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+        
+        .btn-primary {
+            background: #4a6ee0;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3a5bc7;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .diff-container {
+            display: flex;
+            height: 60vh;
+            position: relative;
+        }
+        
+        .diff-header {
+            display: flex;
+            background: #e9ecef;
+            padding: 10px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .diff-header div {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .diff-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            border-right: 1px solid #dee2e6;
+        }
+        
+        textarea {
+            width: 100%;
+            flex: 1;
+            padding: 15px;
+            border: none;
+            resize: none;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 15px;
+            line-height: 1.5;
+            outline: none;
+            background: #f8f9fa;
+            transition: background 0.3s;
+        }
+        
+        textarea:focus {
+            background: #fff;
+        }
+        
+        .result-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+        
+        .diff-result {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 15px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            background: #f8f9fa;
+        }
+        
+        .line {
+            padding: 2px 0;
+        }
+        
+        .added {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .removed {
+            background: #f8d7da;
+            color: #721c24;
+            text-decoration: line-through;
+        }
+        
+        .modified {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .line-number {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+            padding-right: 10px;
+            color: #6c757d;
+            user-select: none;
+        }
+        
+        .sync-scroll {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .sync-scroll.active {
+            background: #4a6ee0;
+        }
+        
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #4a6ee0;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .highlight {
+            background: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .diff-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .editor-container, .result-container {
+                height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>文本对比工具</h1>
+            <p>快速比较两个文本的差异，支持左右并排显示，高亮显示添加、删除和修改的内容</p>
+        </header>
+        
+        <div class="tool-container">
+            <div class="controls">
+                <button id="compareBtn" class="btn btn-primary">对比文本</button>
+                <button id="clearBtn" class="btn btn-secondary">清空文本</button>
+                <div style="flex:1"></div>
+                <div>
+                    <input type="checkbox" id="syncScroll" checked>
+                    <label for="syncScroll">同步滚动</label>
+                </div>
+            </div>
+            
+            <div class="diff-container">
+                <div class="editor-container">
+                    <div class="diff-header">
+                        <div>原始文本</div>
+                    </div>
+                    <textarea id="originalText" placeholder="在此输入原始文本...">function calculateSum(a, b) {
+    return a + b;
+}
+
+// 测试调用
+console.log(calculateSum(5, 10));
+
+const user = {
+    name: "Alice",
+    age: 28,
+    occupation: "Software Engineer"
+};
+
+console.log("用户信息:", user);</textarea>
+                </div>
+                
+                <div class="editor-container">
+                    <div class="diff-header">
+                        <div>修改文本</div>
+                    </div>
+                    <textarea id="modifiedText" placeholder="在此输入修改后的文本...">function calculateSum(a, b) {
+    // 添加参数验证
+    if (typeof a !== 'number' || typeof b !== 'number') {
+        throw new Error('参数必须是数字');
+    }
+    return a + b;
+}
+
+// 测试调用
+console.log(calculateSum(5, 10));
+
+const user = {
+    name: "Alice Smith",
+    age: 29,
+    occupation: "Senior Software Engineer",
+    email: "alice@example.com"
+};
+
+console.log("用户详细信息:", user);</textarea>
+                </div>
+            </div>
+            
+            <div class="diff-header">
+                <div>对比结果</div>
+            </div>
+            <div class="diff-content">
+                <div class="result-container">
+                    <div class="sync-scroll" id="syncIndicator">同步滚动: 开启</div>
+                    <div id="diffResult" class="diff-result"></div>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3>使用说明</h3>
+                <ul>
+                    <li>在左侧输入原始文本，右侧输入修改后的文本</li>
+                    <li>点击<span class="highlight">对比文本</span>按钮显示差异</li>
+                    <li><span class="highlight" style="background:#d4edda;">绿色高亮</span>表示新增内容</li>
+                    <li><span class="highlight" style="background:#f8d7da;">红色高亮</span>表示删除内容</li>
+                    <li><span class="highlight" style="background:#fff3cd;">黄色高亮</span>表示修改内容</li>
+                    <li>启用<span class="highlight">同步滚动</span>可使原始文本和对比结果同步滚动</li>
+                    <li>点击<span class="highlight">清空文本</span>可重置所有输入区域</li>
+                </ul>
+            </div>
+        </div>
+        
+        <footer>
+            <p>文本对比工具 © 2023 | 基于JavaScript实现</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const originalText = document.getElementById('originalText');
+            const modifiedText = document.getElementById('modifiedText');
+            const diffResult = document.getElementById('diffResult');
+            const compareBtn = document.getElementById('compareBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const syncScroll = document.getElementById('syncScroll');
+            const syncIndicator = document.getElementById('syncIndicator');
+            
+            // 同步滚动功能
+            let syncEnabled = true;
+            syncScroll.addEventListener('change', function() {
+                syncEnabled = this.checked;
+                syncIndicator.textContent = `同步滚动: ${syncEnabled ? '开启' : '关闭'}`;
+                syncIndicator.classList.toggle('active', syncEnabled);
+            });
+            
+            // 文本对比功能
+            compareBtn.addEventListener('click', compareTexts);
+            
+            // 清空文本
+            clearBtn.addEventListener('click', function() {
+                originalText.value = '';
+                modifiedText.value = '';
+                diffResult.innerHTML = '';
+            });
+            
+            // 同步滚动实现
+            originalText.addEventListener('scroll', syncScrollPosition);
+            diffResult.addEventListener('scroll', syncScrollPosition);
+            
+            function syncScrollPosition(e) {
+                if (!syncEnabled) return;
+                
+                if (e.target === originalText) {
+                    diffResult.scrollTop = originalText.scrollTop;
+                } else if (e.target === diffResult) {
+                    originalText.scrollTop = diffResult.scrollTop;
+                }
+            }
+            
+            // 文本对比算法
+            function compareTexts() {
+                const text1 = originalText.value.split('\n');
+                const text2 = modifiedText.value.split('\n');
+                
+                let resultHTML = '';
+                let lineNum = 1;
+                
+                // 找出最长数组长度
+                const maxLength = Math.max(text1.length, text2.length);
+                
+                for (let i = 0; i < maxLength; i++) {
+                    const line1 = text1[i] || '';
+                    const line2 = text2[i] || '';
+                    
+                    if (line1 === line2) {
+                        // 行内容完全相同
+                        resultHTML += `<div class="line"><span class="line-number">${lineNum++}</span>${escapeHtml(line1)}</div>`;
+                    } else if (line2 === '') {
+                        // 行被删除
+                        resultHTML += `<div class="line removed"><span class="line-number">${lineNum++}</span>${escapeHtml(line1)}</div>`;
+                    } else if (line1 === '') {
+                        // 行被添加
+                        resultHTML += `<div class="line added"><span class="line-number">${lineNum++}</span>${escapeHtml(line2)}</div>`;
+                    } else {
+                        // 行被修改
+                        resultHTML += `<div class="line modified"><span class="line-number">${lineNum++}</span>`;
+                        
+                        // 字符级别对比
+                        const maxLineLength = Math.max(line1.length, line2.length);
+                        let charResult = '';
+                        
+                        for (let j = 0; j < maxLineLength; j++) {
+                            const char1 = line1[j] || '';
+                            const char2 = line2[j] || '';
+                            
+                            if (char1 === char2) {
+                                charResult += escapeHtml(char1);
+                            } else if (char1 === '') {
+                                charResult += `<span class="added">${escapeHtml(char2)}</span>`;
+                            } else if (char2 === '') {
+                                charResult += `<span class="removed">${escapeHtml(char1)}</span>`;
+                            } else {
+                                charResult += `<span class="modified">${escapeHtml(char2)}</span>`;
+                            }
+                        }
+                        
+                        resultHTML += charResult + '</div>';
+                    }
+                }
+                
+                diffResult.innerHTML = resultHTML;
+            }
+            
+            // 转义HTML特殊字符
+            function escapeHtml(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+            
+            // 初始化页面
+            syncIndicator.classList.add('active');
+            compareTexts();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON格式化工具 - 带折叠功能</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --text-color: #333;
+            --bg-color: #f9f9f9;
+            --panel-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --key-color: #92278f;
+            --string-color: #3ab54a;
+            --number-color: #25aae2;
+            --boolean-color: #f98280;
+            --null-color: #f1592a;
+            --input-panel-width: 40%;
+            --output-panel-width: 60%;
+        }
+
+        .dark-mode {
+            --text-color: #e0e0e0;
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --border-color: #333;
+            --key-color: #d896ff;
+            --string-color: #7ec699;
+            --number-color: #6cb8ff;
+            --boolean-color: #ff9f7f;
+            --null-color: #ff9f7f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+            font-weight: 400; /* 更细的字体 */
+        }
+
+        .dark-mode body {
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 32px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500; /* 更细的标题字体 */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            background: linear-gradient(135deg, #3498db, #9b59b6);
+            width: 30px;
+            height: 30px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500; /* 更细的字体 */
+            font-size: 24px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 28px;
+            transition: transform 0.3s;
+            background: rgba(52, 152, 219, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(30deg);
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        .tools-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 5px;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500; /* 更细的按钮字体 */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(to right, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .panels {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .panels {
+                flex-direction: column;
+            }
+            
+            .panel {
+                width: 100% !important;
+            }
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .input-panel {
+            width: var(--input-panel-width);
+        }
+
+        .output-panel {
+            width: var(--output-panel-width);
+        }
+
+        .panel-header {
+            padding: 6px 10px;
+            background: linear-gradient(to right, rgba(52, 152, 219, 0.15), rgba(155, 89, 182, 0.1));
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-weight: 500; /* 更细的标题字体 */
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+        }
+
+        .panel-content {
+            flex: 1;
+            position: relative;
+            min-height: 450px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 25px;
+            border: none;
+            background: transparent;
+            resize: none;
+            font-family: 'Fira Code', monospace;
+            color: var(--text-color);
+            font-size: 15px; /* 更细的代码字体 */
+            outline: none;
+            line-height: 1.8;
+            font-weight: 400;
+        }
+
+        #formattedJson {
+            padding: 25px;
+            overflow: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 15px; /* 更细的代码字体 */
+            line-height: 1.8;
+        }
+
+        .json-tree {
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .json-node {
+            margin: 8px 0; /* 增加行间距 */
+            position: relative;
+        }
+
+        .json-key {
+            color: var(--key-color);
+            font-weight: 500; /* 更细的字体 */
+        }
+
+        .json-string {
+            color: var(--string-color);
+        }
+
+        .json-number {
+            color: var(--number-color);
+            font-weight: 500; /* 更细的字体 */
+        }
+
+        .json-boolean {
+            color: var(--boolean-color);
+            font-weight: 500; /* 更细的字体 */
+        }
+
+        .json-null {
+            color: var(--null-color);
+            font-weight: 500; /* 更细的字体 */
+        }
+
+        .toggle {
+            position: absolute;
+            left: -25px;
+            cursor: pointer;
+            color: var(--primary-color);
+            font-size: 16px; /* 增大按钮字体 */
+            width: 24px; /* 增大按钮尺寸 */
+            height: 24px; /* 增大按钮尺寸 */
+            text-align: center;
+            line-height: 24px; /* 垂直居中 */
+            border-radius: 4px;
+            transition: all 0.2s;
+            background: rgba(52, 152, 219, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle:hover {
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        .children {
+            padding-left: 25px;
+            border-left: 1px dashed rgba(52, 152, 219, 0.3);
+            margin-left: 8px;
+            transition: all 0.3s;
+        }
+
+        .collapsed .children {
+            display: none;
+        }
+
+        .collapsed::after {
+            content: '...';
+            color: #777;
+            margin-left: 5px;
+        }
+
+        .collapsed .bracket {
+            color: #777;
+        }
+
+        .bracket {
+            color: var(--primary-color);
+            font-weight: 500; /* 更细的字体 */
+        }
+
+        .error-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 5px solid var(--error-color);
+            display: none;
+        }
+
+        .error-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--error-color);
+            margin-bottom: 12px;
+            font-weight: 500; /* 更细的字体 */
+            font-size: 18px;
+        }
+
+        .error-message {
+            font-family: 'Fira Code', monospace;
+            font-size: 15px;
+            color: var(--error-color);
+            line-height: 1.7;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            font-size: 15px;
+            color: #777;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 25px;
+            color: #777;
+            font-size: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 35px;
+        }
+
+        .feature-card {
+            background: var(--panel-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 20px;
+            font-weight: 500; /* 更细的字体 */
+        }
+
+        .feature-card p {
+            font-size: 16px;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            background: var(--success-color);
+            color: white;
+            font-weight: 500; /* 更细的字体 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.4s;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .auto-format-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+            background: rgba(52, 152, 219, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--success-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 15px; /* 增大按钮尺寸 */
+            background: rgba(52, 152, 219, 0.1);
+            border: none;
+            border-radius: 6px;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 14px; /* 增大字体 */
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .action-btn:hover {
+            background: rgba(52, 152, 219, 0.2);
+        }
+        
+        .line-counter {
+            display: flex;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <span class="logo">J</span>
+                JSON格式化工具
+            </h1>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </header>
+        
+        <div class="tools-container">
+            <button class="btn btn-primary" id="formatBtn">
+                <i class="fas fa-indent"></i> 格式化
+            </button>
+            <button class="btn btn-warning" id="compressBtn">
+                <i class="fas fa-compress"></i> 压缩
+            </button>
+            <button class="btn" id="clearBtn">
+                <i class="fas fa-trash"></i> 清空
+            </button>
+            <button class="btn btn-success" id="copyBtn">
+                <i class="fas fa-copy"></i> 复制结果
+            </button>
+            <button class="btn" id="exampleBtn">
+                <i class="fas fa-code"></i> 加载示例
+            </button>
+            
+            <div class="auto-format-toggle">
+                <span>粘贴时自动格式化</span>
+                <label class="switch">
+                    <input type="checkbox" id="autoFormatToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="panels">
+            <div class="panel input-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-pencil-alt"></i> 输入JSON
+                    </div>
+                    <div class="panel-actions">
+                        <i class="fas fa-expand" title="最大化"></i>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <textarea id="jsonInput" placeholder='在此处粘贴或输入JSON数据，例如：{"name": "John", "age": 30, "isStudent": false}'></textarea>
+                </div>
+                <div class="status-bar">
+                    <div class="line-counter">
+                        <span>行数: <span id="lineCount">1</span></span>
+                        <span>字符数: <span id="charCount">0</span></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel output-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-eye"></i> 格式化结果
+                    </div>
+                    <div class="actions">
+                        <button class="action-btn" id="expandAllBtn"><i class="fas fa-plus-circle"></i> 展开全部</button>
+                        <button class="action-btn" id="collapseAllBtn"><i class="fas fa-minus-circle"></i> 折叠全部</button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="json-tree" id="formattedJson">等待输入...</div>
+                </div>
+                <div class="status-bar">
+                    <div class="line-counter">
+                        <span>状态: <span id="formatStatus">等待中</span></span>
+                        <span>行数: <span id="formattedLineCount">0</span></span>
+                        <span>处理时间: <span id="processTime">0ms</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="error-container" id="errorContainer">
+            <div class="error-title">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>JSON解析错误</span>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3><i class="fas fa-check-circle"></i> JSON格式化</h3>
+                <p>将压缩的JSON数据格式化为易读的形式，支持语法高亮显示和折叠功能。支持大文件处理，优化了渲染性能。</p>
+            </div>
+            <div class="feature-card">
+                <h3><i class="fas fa-bolt"></i> 折叠功能</h3>
+                <p>使用可折叠的树形结构展示JSON数据，可以展开/折叠对象和数组。增大折叠按钮尺寸，提高易用性。</p>
+            </div>
+            <div class="feature-card">
+                <h3><i class="fas fa-chart-line"></i> 详细统计</h3>
+                <p>提供详细的统计信息，包括输入行数、字符数，格式化后的行数，以及处理时间等。</p>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 JSON格式化工具 | 基于JavaScript实现 | 本地处理，数据不会上传到服务器</p>
+        </footer>
+    </div>
+
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText"></span>
+    </div>
+
+    <script>
+        // 页面元素
+        const jsonInput = document.getElementById('jsonInput');
+        const formattedJson = document.getElementById('formattedJson');
+        const formatBtn = document.getElementById('formatBtn');
+        const compressBtn = document.getElementById('compressBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const exampleBtn = document.getElementById('exampleBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const lineCount = document.getElementById('lineCount');
+        const charCount = document.getElementById('charCount');
+        const formattedLineCount = document.getElementById('formattedLineCount');
+        const formatStatus = document.getElementById('formatStatus');
+        const processTime = document.getElementById('processTime');
+        const autoFormatToggle = document.getElementById('autoFormatToggle');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+        const expandAllBtn = document.getElementById('expandAllBtn');
+        const collapseAllBtn = document.getElementById('collapseAllBtn');
+
+        // 主题切换
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const icon = themeToggle.querySelector('i');
+            if (document.body.classList.contains('dark-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        });
+
+        // 显示通知
+        function showNotification(message, isSuccess = true) {
+            notification.style.backgroundColor = isSuccess ? 'var(--success-color)' : 'var(--error-color)';
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 加载示例JSON
+        exampleBtn.addEventListener('click', () => {
+            const exampleJson = {
+                "status": "success",
+                "message": "数据加载成功",
+                "timestamp": "2023-07-11T14:30:45Z",
+                "data": {
+                    "user": {
+                        "id": 12345,
+                        "name": "张小明",
+                        "email": "zhang@example.com",
+                        "roles": ["admin", "editor"],
+                        "isActive": true,
+                        "profile": {
+                            "age": 28,
+                            "address": {
+                                "city": "北京",
+                                "country": "中国",
+                                "postalCode": "100000",
+                                "coordinates": {
+                                    "latitude": 39.9042,
+                                    "longitude": 116.4074
+                                }
+                            },
+                            "interests": ["编程", "摄影", "旅行", "音乐"],
+                            "education": [
+                                {
+                                    "degree": "硕士",
+                                    "field": "计算机科学",
+                                    "university": "北京大学",
+                                    "year": 2018
+                                },
+                                {
+                                    "degree": "学士",
+                                    "field": "软件工程",
+                                    "university": "清华大学",
+                                    "year": 2015
+                                }
+                            ]
+                        },
+                        "preferences": {
+                            "theme": "dark",
+                            "language": "zh-CN",
+                            "notifications": {
+                                "email": true,
+                                "push": false,
+                                "frequency": "daily"
+                            }
+                        },
+                        "createdAt": "2020-03-15T08:30:00Z",
+                        "updatedAt": "2023-07-10T16:45:22Z"
+                    },
+                    "statistics": {
+                        "loginCount": 142,
+                        "lastLogin": "2023-07-10T14:22:18Z",
+                        "activity": {
+                            "posts": 24,
+                            "comments": 156,
+                            "likes": 842
+                        }
+                    },
+                    "subscription": {
+                        "plan": "premium",
+                        "status": "active",
+                        "startDate": "2022-11-01T00:00:00Z",
+                        "endDate": "2023-11-01T00:00:00Z",
+                        "paymentMethod": "credit_card",
+                        "features": ["unlimited", "premium_support", "advanced_analytics"]
+                    }
+                },
+                "metadata": {
+                    "apiVersion": "1.3.0",
+                    "requestId": "a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8",
+                    "responseTime": 45
+                }
+            };
+            
+            jsonInput.value = JSON.stringify(exampleJson, null, 2);
+            formatJSON();
+            updateCharCount();
+            showNotification('示例JSON已加载');
+        });
+
+        // 更新字符计数
+        jsonInput.addEventListener('input', () => {
+            updateCharCount();
+        });
+
+        function updateCharCount() {
+            const text = jsonInput.value;
+            charCount.textContent = text.length;
+            lineCount.textContent = text.split('\n').length;
+        }
+
+        // 递归创建可折叠的JSON节点
+        function createNode(key, value, depth = 0) {
+            const node = document.createElement('div');
+            node.className = 'json-node';
+            node.dataset.depth = depth;
+            
+            const isObject = typeof value === 'object' && value !== null;
+            const isArray = Array.isArray(value);
+            
+            if (key) {
+                const keySpan = document.createElement('span');
+                keySpan.className = 'json-key';
+                keySpan.textContent = key + ': ';
+                node.appendChild(keySpan);
+            }
+            
+            if (isObject) {
+                const isCollapsible = Object.keys(value).length > 0;
+                
+                if (isCollapsible) {
+                    const toggle = document.createElement('span');
+                    toggle.className = 'toggle';
+                    toggle.textContent = '−';
+                    toggle.addEventListener('click', function() {
+                        node.classList.toggle('collapsed');
+                        this.textContent = node.classList.contains('collapsed') ? '+' : '−';
+                    });
+                    node.insertBefore(toggle, node.firstChild);
+                }
+                
+                const bracketOpen = document.createElement('span');
+                bracketOpen.className = 'bracket';
+                bracketOpen.textContent = isArray ? '[' : '{';
+                node.appendChild(bracketOpen);
+                
+                const children = document.createElement('div');
+                children.className = 'children';
+                
+                if (isCollapsible) {
+                    for (const childKey in value) {
+                        const childNode = createNode(isArray ? null : childKey, value[childKey], depth + 1);
+                        children.appendChild(childNode);
+                    }
+                }
+                
+                node.appendChild(children);
+                
+                const bracketClose = document.createElement('span');
+                bracketClose.className = 'bracket';
+                bracketClose.textContent = isArray ? ']' : '}';
+                node.appendChild(bracketClose);
+                
+                if (isCollapsible) {
+                    node.classList.add('collapsible');
+                }
+            } else {
+                const valueSpan = document.createElement('span');
+                
+                if (typeof value === 'string') {
+                    valueSpan.className = 'json-string';
+                    valueSpan.textContent = '"' + value + '"';
+                } else if (typeof value === 'number') {
+                    valueSpan.className = 'json-number';
+                    valueSpan.textContent = value;
+                } else if (typeof value === 'boolean') {
+                    valueSpan.className = 'json-boolean';
+                    valueSpan.textContent = value;
+                } else if (value === null) {
+                    valueSpan.className = 'json-null';
+                    valueSpan.textContent = 'null';
+                }
+                
+                node.appendChild(valueSpan);
+            }
+            
+            return node;
+        }
+
+        // 计算格式化后的行数
+        function countFormattedLines() {
+            const nodes = document.querySelectorAll('.json-node');
+            return nodes.length;
+        }
+
+        // 格式化JSON并创建可折叠树
+        function formatJSON() {
+            const startTime = performance.now();
+            errorContainer.style.display = 'none';
+            
+            try {
+                const jsonString = jsonInput.value.trim();
+                
+                if (!jsonString) {
+                    formattedJson.textContent = '等待输入...';
+                    formatStatus.textContent = '等待中';
+                    formatStatus.style.color = '';
+                    formattedLineCount.textContent = '0';
+                    return;
+                }
+                
+                const jsonObj = JSON.parse(jsonString);
+                
+                // 清空现有内容
+                formattedJson.innerHTML = '';
+                
+                // 创建根节点
+                const rootNode = createNode(null, jsonObj);
+                formattedJson.appendChild(rootNode);
+                
+                // 更新行数统计
+                const lineCount = countFormattedLines();
+                formattedLineCount.textContent = lineCount;
+                
+                formatStatus.textContent = '成功';
+                formatStatus.style.color = 'var(--success-color)';
+            } catch (error) {
+                errorContainer.style.display = 'block';
+                errorMessage.textContent = error.message;
+                
+                formattedJson.textContent = '格式错误 - 请检查输入的JSON';
+                formatStatus.textContent = '错误';
+                formatStatus.style.color = 'var(--error-color)';
+                formattedLineCount.textContent = '0';
+            }
+            
+            const endTime = performance.now();
+            processTime.textContent = `${(endTime - startTime).toFixed(2)}ms`;
+        }
+
+        // 压缩JSON
+        function compressJSON() {
+            const startTime = performance.now();
+            errorContainer.style.display = 'none';
+            
+            try {
+                const jsonString = jsonInput.value.trim();
+                
+                if (!jsonString) {
+                    formattedJson.textContent = '等待输入...';
+                    formatStatus.textContent = '等待中';
+                    formattedLineCount.textContent = '0';
+                    return;
+                }
+                
+                const jsonObj = JSON.parse(jsonString);
+                const compressed = JSON.stringify(jsonObj);
+                
+                // 清空现有内容
+                formattedJson.innerHTML = '';
+                
+                // 创建根节点（压缩后不折叠）
+                const rootNode = createNode(null, compressed);
+                formattedJson.appendChild(rootNode);
+                
+                // 更新行数统计
+                const lineCount = countFormattedLines();
+                formattedLineCount.textContent = lineCount;
+                
+                formatStatus.textContent = '成功';
+                formatStatus.style.color = 'var(--success-color)';
+                showNotification('JSON压缩成功');
+            } catch (error) {
+                errorContainer.style.display = 'block';
+                errorMessage.textContent = error.message;
+                
+                formattedJson.textContent = '格式错误 - 请检查输入的JSON';
+                formatStatus.textContent = '错误';
+                formatStatus.style.color = 'var(--error-color)';
+                formattedLineCount.textContent = '0';
+            }
+            
+            const endTime = performance.now();
+            processTime.textContent = `${(endTime - startTime).toFixed(2)}ms`;
+        }
+
+        // 复制结果
+        function copyResult() {
+            const text = document.getElementById('jsonInput').value;
+            
+            if (!text) {
+                return;
+            }
+            
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('结果已复制到剪贴板');
+            }).catch(err => {
+                showNotification('复制失败: ' + err.message, false);
+            });
+        }
+
+        // 清空输入
+        function clearInput() {
+            jsonInput.value = '';
+            formattedJson.textContent = '等待输入...';
+            errorContainer.style.display = 'none';
+            charCount.textContent = '0';
+            lineCount.textContent = '1';
+            formattedLineCount.textContent = '0';
+            formatStatus.textContent = '等待中';
+            formatStatus.style.color = '';
+            showNotification('输入已清空');
+        }
+
+        // 粘贴时自动格式化
+        jsonInput.addEventListener('paste', (e) => {
+            if (!autoFormatToggle.checked) return;
+            
+            // 允许默认粘贴行为
+            setTimeout(() => {
+                formatJSON();
+                showNotification('粘贴内容已自动格式化');
+            }, 50);
+        });
+
+        // 展开所有节点
+        expandAllBtn.addEventListener('click', () => {
+            const toggles = document.querySelectorAll('.toggle');
+            toggles.forEach(toggle => {
+                const node = toggle.parentNode;
+                node.classList.remove('collapsed');
+                toggle.textContent = '−';
+            });
+            showNotification('已展开所有节点');
+        });
+
+        // 折叠所有节点
+        collapseAllBtn.addEventListener('click', () => {
+            const toggles = document.querySelectorAll('.toggle');
+            toggles.forEach(toggle => {
+                const node = toggle.parentNode;
+                node.classList.add('collapsed');
+                toggle.textContent = '+';
+            });
+            showNotification('已折叠所有节点');
+        });
+
+        // 事件监听
+        formatBtn.addEventListener('click', () => {
+            formatJSON();
+            showNotification('JSON格式化完成');
+        });
+        
+        compressBtn.addEventListener('click', compressJSON);
+        clearBtn.addEventListener('click', clearInput);
+        copyBtn.addEventListener('click', copyResult);
+        
+        // 初始化
+        updateCharCount();
+        
+        // 添加初始提示
+        setTimeout(() => {
+            if (!jsonInput.value) {
+                showNotification('提示：粘贴JSON内容会自动格式化');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
