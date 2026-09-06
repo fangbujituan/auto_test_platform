@@ -985,7 +985,9 @@ const getPriorityType = (priority) => {
 <style scoped>
 .test-case-layout {
   display: flex;
-  height: calc(100vh - 90px);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   background: var(--el-bg-color-page);
 }
 

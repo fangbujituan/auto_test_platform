@@ -5,6 +5,31 @@
         <el-icon :size="24"><Platform /></el-icon>
         <span class="logo-text">ATP</span>
       </div>
+
+      <!-- 项目切换下拉框 -->
+      <el-select
+        v-if="projects.length > 0"
+        :model-value="currentProjectId"
+        placeholder="切换项目"
+        class="project-select"
+        popper-class="project-switch-popper"
+        :teleported="true"
+        filterable
+        default-first-option
+        filter-placeholder="搜索项目"
+        no-match-text="无匹配项目"
+        @change="handleProjectChange"
+      >
+        <template #prefix>
+          <el-icon><FolderOpened /></el-icon>
+        </template>
+        <el-option
+          v-for="proj in projects"
+          :key="proj.id"
+          :label="proj.name"
+          :value="String(proj.id)"
+        />
+      </el-select>
     </div>
     
     <div class="header-right">
@@ -43,8 +68,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Platform,
@@ -56,12 +81,56 @@ import {
   Tools
 } from '@element-plus/icons-vue'
 import { logout } from '../api/auth'
+import { getProjects } from '../api/project'
 
 const router = useRouter()
+const route = useRoute()
 const username = ref('')
+const projects = ref([])
+
+// 当前所在项目（仅项目内页面有 projectId）
+const currentProjectId = computed(() => {
+  const id = route.params.projectId
+  return id !== undefined ? String(id) : ''
+})
+
+// 项目内页面路由：切换项目时停留在当前模块
+const PROJECT_ROUTE_NAMES = [
+  'ProjectDetail',
+  'ProjectMembers',
+  'RequirementManagement',
+  'BugManagement',
+  'BugManagementNew',
+  'TestCaseManagement',
+  'AutomationManagement'
+]
+
+async function loadProjects() {
+  try {
+    const res = await getProjects()
+    projects.value = res.data || []
+  } catch (e) {
+    // 未登录或接口异常时静默处理，不展示下拉框
+    projects.value = []
+  }
+}
+
+function handleProjectChange(projectId) {
+  const proj = projects.value.find(p => String(p.id) === String(projectId))
+  const projectName = proj ? proj.name : ''
+  let targetName = PROJECT_ROUTE_NAMES.includes(route.name) ? route.name : 'ProjectDetail'
+  // 需求详情页绑定具体需求，切项目后回到新需求列表
+  if (route.name === 'RequirementDetail') targetName = 'RequirementManagement'
+  router.push({
+    name: targetName,
+    params: { projectId },
+    query: { projectName }
+  })
+}
 
 onMounted(() => {
   username.value = localStorage.getItem('username') || '用户'
+  loadProjects()
 })
 
 // 跳转到仪表盘
@@ -134,6 +203,28 @@ const handleLogout = async () => {
 .header-left {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+/* 项目切换下拉框：固定宽度，超长项目名省略号 */
+.project-select {
+  width: 200px;
+}
+
+.project-select :deep(.el-select__wrapper),
+.project-select :deep(.el-select__wrapper.is-hovering),
+.project-select :deep(.el-select__wrapper.is-focused) {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 4px;
+}
+
+.project-select :deep(.el-select__placeholder),
+.project-select :deep(.el-select__selected-item) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .logo {
@@ -188,5 +279,30 @@ const handleLogout = async () => {
   .username {
     display: none;
   }
+
+  .project-select {
+    width: 140px;
+  }
+}
+</style>
+
+<!-- 非 scoped：下拉弹层 teleport 到 body，需要全局样式 -->
+<style>
+/* 项目切换下拉面板：宽度自适应最长项目名，而非强制等于触发框宽度 */
+.project-switch-popper {
+  min-width: max-content !important;
+  max-width: 420px;
+  border-radius: 4px !important;
+}
+
+.project-switch-popper .el-select-dropdown__list {
+  padding: 6px 0;
+}
+
+.project-switch-popper .el-select-dropdown__item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
 }
 </style>

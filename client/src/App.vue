@@ -1,5 +1,5 @@
 <template>
-  <router-view />
+  <router-view :key="route.path" />
   <AIChatWidget v-if="isLoggedIn" />
 </template>
 
