@@ -37,12 +37,43 @@
         header {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+            gap: 10px;
             margin-bottom: 8px;
             color: white;
             padding: 4px 8px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
             position: relative;
+        }
+
+        .header-actions, .header-sync {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        .header-sync {
+            justify-content: flex-end;
+        }
+        .header-sync label {
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .btn-header {
+            padding: 6px 14px;
+            font-size: 13px;
+            color: #fff;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.4);
+            text-shadow: none;
+        }
+        .btn-header:hover {
+            background: rgba(255,255,255,0.32);
+            transform: translateY(-1px);
         }
 
         header h1 {
@@ -109,17 +140,6 @@
             overflow: hidden;
         }
 
-        .controls {
-            display: flex;
-            background: #f8f9fa;
-            padding: 8px;
-            border-bottom: 1px solid #e9ecef;
-            flex-wrap: wrap;
-            gap: 8px;
-            position: relative;
-            align-items: center;
-        }
-
         .btn {
             padding: 8px 18px;
             border: none;
@@ -153,6 +173,38 @@
             display: flex;
             height: 42vh;
             position: relative;
+            flex-shrink: 0;
+        }
+
+        /* 上下拖拽分隔条：调整编辑区 / 结果区高度 */
+        .h-resizer {
+            height: 7px;
+            background: #e9ecef;
+            border-top: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            cursor: row-resize;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 6;
+            transition: background 0.15s;
+        }
+        .h-resizer::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 52px;
+            height: 3px;
+            border-radius: 2px;
+            background: #adb5bd;
+            transition: background 0.15s;
+        }
+        .h-resizer:hover {
+            background: #d0ebff;
+        }
+        .h-resizer:hover::after {
+            background: #4a6ee0;
         }
 
         .diff-header {
@@ -171,19 +223,24 @@
             text-align: center;
         }
 
-        .mode-switch {
+        .mode-status {
             font-size: 12px;
-            color: #4a6ee0;
-            cursor: pointer;
             user-select: none;
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 2px 10px;
+            border-radius: 10px;
             font-weight: normal;
             border: 1px solid transparent;
+            white-space: nowrap;
         }
-        .mode-switch:hover {
-            background: #fff;
-            border-color: #4a6ee0;
+        .mode-status.status-json {
+            color: #4a6ee0;
+            background: rgba(74, 110, 224, 0.12);
+            border-color: rgba(74, 110, 224, 0.4);
+        }
+        .mode-status.status-edit {
+            color: #2f9e44;
+            background: rgba(47, 158, 68, 0.12);
+            border-color: rgba(47, 158, 68, 0.4);
         }
 
         .diff-content {
@@ -400,23 +457,6 @@
             user-select: none;
         }
 
-        .sync-scroll {
-            position: absolute;
-            top: 12px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            z-index: 10;
-        }
-
-        .sync-scroll.active {
-            background: #4a6ee0;
-        }
-
         .instructions {
             background: #f8f9fa;
             padding: 10px 16px;
@@ -511,20 +551,20 @@
         }
 
         @media (max-width: 768px) {
+            header {
+                flex-wrap: wrap;
+            }
             .diff-container {
                 flex-direction: column;
                 height: auto;
+            }
+            .h-resizer {
+                display: none;
             }
             .editor-container, .result-container {
                 height: 40vh;
                 border-right: none;
                 border-bottom: 1px solid #dee2e6;
-            }
-            .controls {
-                flex-direction: column;
-            }
-            .btn {
-                width: 100%;
             }
         }
     </style>
@@ -532,27 +572,26 @@
 <body>
     <div class="container">
         <header>
+            <div class="header-actions">
+                <button id="compareBtn" class="btn btn-header">对比文本</button>
+                <button id="clearBtn" class="btn btn-header">清空文本</button>
+                <button id="sortJsonBtn" class="btn btn-header" style="display:none">JSON 自动排序</button>
+            </div>
             <h1>文本对比工具
-                <span class="help-icon" data-tip="快速比较两个文本的差异，支持左右并排显示，高亮显示添加、删除和修改的内容。&#10;&#10;· 输入框左侧固定行号，便于定位&#10;· JSON 自动按 2 空格缩进格式化，支持行号列上的折叠 / 展开&#10;· 点击「对比文本」顶部会提示差异统计">❓</span>
+                <span class="help-icon" data-tip="快速比较两个文本的差异，支持左右并排显示，高亮显示添加、删除和修改的内容。&#10;&#10;· 输入框左侧固定行号，便于定位&#10;· JSON 自动按 2 空格缩进格式化，支持行号列上的折叠 / 展开&#10;· 在 JSON 视图中双击任意位置进入编辑模式，光标即定位到双击处，失焦自动返回&#10;· 对比后两侧均为 JSON 时，可点「JSON 自动排序」按 key 字母排序&#10;· 拖动编辑区与对比结果之间的分隔条可调整高度&#10;· 点击「对比文本」顶部会提示差异统计（3 秒后消失）">❓</span>
             </h1>
+            <div class="header-sync">
+                <input type="checkbox" id="syncScroll" checked>
+                <label for="syncScroll">同步滚动</label>
+            </div>
         </header>
 
         <div class="tool-container">
-            <div class="controls">
-                <button id="compareBtn" class="btn btn-primary">对比文本</button>
-                <button id="clearBtn" class="btn btn-secondary">清空文本</button>
-                <div style="flex:1"></div>
-                <div>
-                    <input type="checkbox" id="syncScroll" checked>
-                    <label for="syncScroll">同步滚动</label>
-                </div>
-            </div>
-
-            <div class="diff-container">
+            <div class="diff-container" id="diffContainer">
                 <div class="editor-container" id="editorOriginal">
                     <div class="diff-header">
                         <div>原始文本</div>
-                        <span class="mode-switch" data-switch>JSON 视图</span>
+                        <span class="mode-status" data-switch></span>
                     </div>
                     <div class="editor-body">
                         <div class="editor-gutter-overlay" data-gutter-overlay></div>
@@ -580,7 +619,7 @@ console.log("用户信息:", user);</textarea>
                 <div class="editor-container" id="editorModified">
                     <div class="diff-header">
                         <div>修改文本</div>
-                        <span class="mode-switch" data-switch>JSON 视图</span>
+                        <span class="mode-status" data-switch></span>
                     </div>
                     <div class="editor-body">
                         <div class="editor-gutter-overlay" data-gutter-overlay></div>
@@ -611,12 +650,13 @@ console.log("用户详细信息:", user);</textarea>
                 </div>
             </div>
 
+            <div class="h-resizer" id="hResizer" title="上下拖动调整编辑区高度"></div>
+
             <div class="diff-header">
                 <div>对比结果</div>
             </div>
             <div class="diff-content">
                 <div class="result-container">
-                    <div class="sync-scroll" id="syncIndicator">同步滚动: 开启</div>
                     <div id="diffResult" class="diff-result"></div>
                 </div>
             </div>
@@ -630,7 +670,7 @@ console.log("用户详细信息:", user);</textarea>
                         <ul style="margin-left:16px; margin-top:2px;">
                             <li>粘贴或失焦会自动按 2 空格缩进格式化</li>
                             <li>自动切到<span class="highlight">JSON 视图</span>，行号列上的 ▼ 点击可折叠对应块，▶ 点击可展开</li>
-                            <li>点右上角的 "编辑模式 / JSON 视图" 可以手动切换</li>
+                            <li>在 JSON 视图中<span class="highlight">双击任意位置</span>即可进入编辑模式，光标会定位到双击的行和列，失焦后自动格式化并返回 JSON 视图；右上角标签仅显示当前模式状态</li>
                         </ul>
                     </li>
                     <li>点击<span class="highlight">对比文本</span>按钮显示差异，顶部会弹出 Toast 提示本次差异数量</li>
@@ -638,7 +678,9 @@ console.log("用户详细信息:", user);</textarea>
                     <li><span class="highlight" style="background:#f8d7da;">红色高亮</span>表示删除内容</li>
                     <li><span class="highlight" style="background:#fff3cd;">黄色高亮</span>表示修改内容</li>
                     <li>启用<span class="highlight">同步滚动</span>可使原始文本、修改文本和对比结果三者按百分比同步滚动</li>
+                    <li>拖动编辑区与对比结果之间的<span class="highlight">分隔条</span>可上下调整两区高度（含最小 / 最大限制）</li>
                     <li>点击<span class="highlight">清空文本</span>可重置所有输入区域</li>
+                    <li>点击「对比文本」后，若两侧文本均为合法 JSON，会出现<span class="highlight">JSON 自动排序</span>按钮：递归将对象按 key 字母升序（a→z，大小写不敏感、数字按数值感知，如 a2 排在 a10 前）排列，<b>数组保持原有顺序</b>，排序后自动重新对比</li>
                 </ul>
             </div>
         </div>
@@ -657,26 +699,58 @@ console.log("用户详细信息:", user);</textarea>
             const diffResult = document.getElementById('diffResult');
             const compareBtn = document.getElementById('compareBtn');
             const clearBtn = document.getElementById('clearBtn');
+            const sortJsonBtn = document.getElementById('sortJsonBtn');
             const syncScroll = document.getElementById('syncScroll');
-            const syncIndicator = document.getElementById('syncIndicator');
 
             let syncEnabled = true;
             syncScroll.addEventListener('change', function() {
                 syncEnabled = this.checked;
-                syncIndicator.textContent = `同步滚动: ${syncEnabled ? '开启' : '关闭'}`;
-                syncIndicator.classList.toggle('active', syncEnabled);
             });
 
-            compareBtn.addEventListener('click', compareTexts);
+            compareBtn.addEventListener('click', function () { compareTexts(); });
 
             clearBtn.addEventListener('click', function() {
                 originalText.value = '';
                 modifiedText.value = '';
                 diffResult.innerHTML = '';
+                sortJsonBtn.style.display = 'none';
                 [editorOriginal, editorModified].forEach(function (api) {
                     api.clearFolded();
                     api.refresh();
                 });
+            });
+
+            /* =============== JSON 自动排序 =============== */
+            // 规则：对象（object）按 key 递归排序，数组（array）保持原顺序；
+            // key 排序采用大小写不敏感、数字按数值感知的字母升序（a2 排在 a10 前）。
+            function sortJsonDeep(value) {
+                if (Array.isArray(value)) {
+                    return value.map(sortJsonDeep);
+                }
+                if (value && typeof value === 'object') {
+                    const out = {};
+                    Object.keys(value).sort(function (a, b) {
+                        return a.localeCompare(b, 'zh-Hans-CN', { sensitivity: 'base', numeric: true });
+                    }).forEach(function (k) {
+                        out[k] = sortJsonDeep(value[k]);
+                    });
+                    return out;
+                }
+                return value;
+            }
+
+            sortJsonBtn.addEventListener('click', function () {
+                [ [originalText, editorOriginal], [modifiedText, editorModified] ].forEach(function (pair) {
+                    const ta = pair[0], api = pair[1];
+                    try {
+                        const parsed = JSON.parse(ta.value);
+                        ta.value = JSON.stringify(sortJsonDeep(parsed), null, 2);
+                        api.clearFolded();
+                        api.refresh();
+                    } catch (e) { /* 非合法 JSON 跳过 */ }
+                });
+                compareTexts(true);
+                showToast('已按 key 字母顺序排序对象（数组保持原序）并重新对比', 'success');
             });
 
             /* =============== Toast =============== */
@@ -697,11 +771,17 @@ console.log("用户详细信息:", user);</textarea>
                 clearTimeout(toast._timer);
                 toast._timer = setTimeout(function () {
                     toast.classList.remove('show');
-                }, 1500);
+                }, 3000);
             }
 
             /* =============== 文本对比算法 =============== */
-            function compareTexts() {
+            function isJsonText(text) {
+                const t = (text || '').trim();
+                if (t.length < 2) return false;
+                try { JSON.parse(t); return true; } catch (e) { return false; }
+            }
+
+            function compareTexts(silent) {
                 const text1 = originalText.value.split('\n');
                 const text2 = modifiedText.value.split('\n');
 
@@ -746,6 +826,12 @@ console.log("用户详细信息:", user);</textarea>
                 }
 
                 diffResult.innerHTML = resultHTML;
+
+                // 对比后，仅当两侧均为合法 JSON 时才显示「JSON 自动排序」按钮
+                sortJsonBtn.style.display =
+                    (isJsonText(originalText.value) && isJsonText(modifiedText.value)) ? '' : 'none';
+
+                if (silent) return;
                 const totalDiff = addedCount + removedCount + modifiedCount;
                 if (totalDiff === 0) {
                     showToast('两段文本完全一致 ✅', 'success');
@@ -837,19 +923,68 @@ console.log("用户详细信息:", user);</textarea>
 
                 function updateSwitchLabel() {
                     if (!isJson) {
-                        switchBtn.textContent = '仅文本';
+                        switchBtn.textContent = '';
                         switchBtn.style.visibility = 'hidden';
-                    } else {
-                        switchBtn.style.visibility = 'visible';
-                        switchBtn.textContent = (mode === 'json') ? '编辑模式' : 'JSON 视图';
+                        return;
                     }
+                    // 状态标签仅展示当前模式，不可点击
+                    switchBtn.style.visibility = 'visible';
+                    switchBtn.textContent = (mode === 'json') ? 'JSON 视图' : '编辑模式';
+                    switchBtn.classList.toggle('status-json', mode === 'json');
+                    switchBtn.classList.toggle('status-edit', mode !== 'json');
                 }
 
-                switchBtn.addEventListener('click', function () {
-                    if (!isJson) return;
-                    if (mode === 'json') switchToEdit();
-                    else trySwitchToJsonView();
+                // 双击 JSON 视图区域进入编辑模式，光标定位到双击的行列（折叠按钮上的双击不触发）
+                codeView.addEventListener('dblclick', function (e) {
+                    if (mode !== 'json' || e.target.closest('.fold-btn')) return;
+
+                    let line = 0, col = 0;
+                    const contentRow = e.target.closest ? e.target.closest('.code-content [data-line]') : null;
+                    if (contentRow) {
+                        line = parseInt(contentRow.getAttribute('data-line'), 10) || 0;
+                        const lineTextNode = contentRow.firstChild;
+                        const lineLen = (lineTextNode && lineTextNode.nodeType === 3) ? lineTextNode.textContent.length : 0;
+
+                        if (e.target.closest('.fold-placeholder')) {
+                            col = lineLen; // 双击折叠占位符 → 定位到该行行尾
+                        } else {
+                            // 用浏览器光标 API 取双击点对应的列偏移
+                            let pos = null;
+                            if (document.caretRangeFromPoint) {
+                                pos = document.caretRangeFromPoint(e.clientX, e.clientY);
+                            } else if (document.caretPositionFromPoint) {
+                                const p = document.caretPositionFromPoint(e.clientX, e.clientY);
+                                if (p) pos = { startContainer: p.offsetNode, startOffset: p.offset };
+                            }
+                            const inFold = pos && pos.startContainer.parentElement
+                                && pos.startContainer.parentElement.closest('.fold-placeholder');
+                            if (pos && contentRow.contains(pos.startContainer)
+                                && pos.startContainer.nodeType === 3 && !inFold) {
+                                col = pos.startOffset;
+                            } else {
+                                col = lineLen;
+                            }
+                        }
+                    } else {
+                        // 双击在行号列：按可见行顺序映射到对应内容行
+                        const gutterRow = e.target.closest ? e.target.closest('.code-gutter .row') : null;
+                        if (gutterRow) {
+                            const inner = ensureGutterInner();
+                            const idx = Array.prototype.indexOf.call(inner.children, gutterRow);
+                            const mapped = contentEl.children[idx];
+                            if (mapped && mapped.hasAttribute('data-line')) {
+                                line = parseInt(mapped.getAttribute('data-line'), 10) || 0;
+                            }
+                        }
+                        col = 0;
+                    }
+
+                    switchToEdit({ line: line, col: col });
+                    // 清掉双击在 JSON 视图中产生的原生文本选中
+                    const sel = window.getSelection();
+                    if (sel && sel.removeAllRanges) sel.removeAllRanges();
                 });
+                codeView.title = '双击进入编辑模式，光标定位到双击位置';
 
                 /* --- textarea 模式下左侧行号叠加层 --- */
                 function renderOverlay() {
@@ -990,7 +1125,7 @@ console.log("用户详细信息:", user);</textarea>
                     }
                 }
 
-                function switchToEdit() {
+                function switchToEdit(caretPos) {
                     mode = 'edit';
                     codeView.style.display = 'none';
                     overlay.style.display = 'block';
@@ -1000,6 +1135,20 @@ console.log("用户详细信息:", user);</textarea>
                     rebuildScrollTargets();
                     // 给用户 focus，让他能立刻开始改
                     textarea.focus();
+                    // 双击进入时，把光标定位到双击的行列
+                    if (caretPos) {
+                        const lines = textarea.value.split('\n');
+                        let offset = 0;
+                        for (let i = 0; i < caretPos.line && i < lines.length; i++) {
+                            offset += lines[i].length + 1; // +1 为换行符
+                        }
+                        const targetLine = lines[Math.min(caretPos.line, lines.length - 1)] || '';
+                        offset += Math.min(caretPos.col, targetLine.length);
+                        textarea.setSelectionRange(offset, offset);
+                        // 手动滚动保证光标行在可视区域中部
+                        const lineH = parseFloat(getComputedStyle(textarea).lineHeight) || 21;
+                        textarea.scrollTop = Math.max(0, caretPos.line * lineH - textarea.clientHeight / 2);
+                    }
                 }
 
                 function formatJsonIfNeeded() {
@@ -1144,8 +1293,38 @@ console.log("用户详细信息:", user);</textarea>
             }
             rebuildScrollTargets();
 
+            /* =============== 上下拖拽调整编辑区高度 =============== */
+            const diffContainer = document.getElementById('diffContainer');
+            const hResizer = document.getElementById('hResizer');
+            const MIN_EDITOR_H = 120;   // 编辑区最小高度
+            const MIN_RESULT_H = 160;   // 结果区至少保留的可视高度
+            let resizing = false, startY = 0, startH = 0;
+
+            hResizer.addEventListener('mousedown', function (e) {
+                if (window.innerWidth <= 768) return; // 窄屏为上下布局，不启用
+                resizing = true;
+                startY = e.clientY;
+                startH = diffContainer.getBoundingClientRect().height;
+                document.body.style.cursor = 'row-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', function (e) {
+                if (!resizing) return;
+                const top = diffContainer.getBoundingClientRect().top;
+                const maxH = window.innerHeight - top - MIN_RESULT_H;
+                let h = startH + (e.clientY - startY);
+                h = Math.max(MIN_EDITOR_H, Math.min(h, maxH));
+                diffContainer.style.height = h + 'px';
+            });
+            document.addEventListener('mouseup', function () {
+                if (!resizing) return;
+                resizing = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            });
+
             /* =============== 初始化 =============== */
-            syncIndicator.classList.add('active');
             compareTexts();
 
             /* =============== 回到顶部按钮 =============== */
