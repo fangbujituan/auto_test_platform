@@ -396,6 +396,7 @@
             padding: 1px 0;
             height: calc(14px * 1.5 + 2px);
             box-sizing: content-box;
+            position: relative;
         }
         .fold-placeholder {
             display: inline-block;
@@ -408,6 +409,45 @@
             font-size: 12px;
             user-select: none;
         }
+        .indent-guides {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            display: flex;
+            height: 100%;
+            pointer-events: none;
+        }
+        .indent-guide {
+            position: relative;
+            display: inline-block;
+            width: 12px;
+            flex-shrink: 0;
+            height: 100%;
+        }
+        .indent-guide.guide-on::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(108, 117, 125, 0.35);
+        }
+        .indent-guide.guide-off::after {
+            display: none;
+        }
+
+        /* JSON 语法高亮（参考 Charles / Postman 风格） */
+        .code-content { color: #333; }
+        .tok-key    { color: #EE8800; }
+        .tok-str    { color: #178000; }
+        .tok-num    { color: #1a1aa6; }
+        .tok-bool   { color: #1a1aa6; font-weight: 600; }
+        .tok-null   { color: #1a1aa6; font-style: italic; }
+        .tok-brac   { color: #da3633; font-weight: 600; }
+        .tok-punc   { color: #da3633; }
+        .tok-unk    { color: #dc3545; background: rgba(220,53,69,0.08); }
 
         .result-container {
             flex: 1;
@@ -852,8 +892,147 @@ console.log("用户详细信息:", user);</textarea>
                     .replace(/'/g, "&#039;");
             }
 
+            /* =============== JSON 语法高亮 =============== */
+            const TOK_STR   = 'tok-str';
+            const TOK_KEY   = 'tok-key';
+            const TOK_NUM   = 'tok-num';
+            const TOK_BOOL  = 'tok-bool';
+            const TOK_NULL  = 'tok-null';
+            const TOK_BRAC  = 'tok-brac';
+            const TOK_PUNC  = 'tok-punc';
+            const TOK_WS    = 'tok-ws';
+            const TOK_UNKNOWN = 'tok-unk';
+
+            // 逐字符扫描整个 JSON 文本（含换行），返回每行一个带高亮的 HTML 片段
+            function highlightJson(text) {
+                const n = text.length;
+                const lineHtmls = [];
+                const lineBuf = [];
+                let i = 0;
+                const containerStack = [];
+
+                function pushLine() {
+                    lineHtmls.push(lineBuf.join(''));
+                    lineBuf.length = 0;
+                }
+
+                while (i < n) {
+                    const ch = text[i];
+
+                    if (ch === ' ' || ch === '\t') {
+                        let wsStart = i;
+                        while (i < n && (text[i] === ' ' || text[i] === '\t')) i++;
+                        lineBuf.push(text.slice(wsStart, i));
+                        continue;
+                    }
+                    if (ch === '\n') {
+                        pushLine();
+                        i++;
+                        continue;
+                    }
+
+                    if (ch === '{') {
+                        containerStack.push(true);
+                        lineBuf.push('<span class="' + TOK_BRAC + '">{</span>');
+                        i++;
+                        continue;
+                    }
+                    if (ch === '[') {
+                        containerStack.push(false);
+                        lineBuf.push('<span class="' + TOK_BRAC + '">[</span>');
+                        i++;
+                        continue;
+                    }
+                    if (ch === '}') {
+                        if (containerStack.length) containerStack.pop();
+                        lineBuf.push('<span class="' + TOK_BRAC + '">}</span>');
+                        i++;
+                        continue;
+                    }
+                    if (ch === ']') {
+                        if (containerStack.length) containerStack.pop();
+                        lineBuf.push('<span class="' + TOK_BRAC + '">]</span>');
+                        i++;
+                        continue;
+                    }
+                    if (ch === ',') {
+                        lineBuf.push('<span class="' + TOK_PUNC + '">,</span>');
+                        i++;
+                        continue;
+                    }
+
+                    // 字符串（key 或 string value）
+                    if (ch === '"') {
+                        const strStart = i;
+                        i++;
+                        while (i < n && text[i] !== '"') {
+                            if (text[i] === '\\' && i + 1 < n) i += 2;
+                            else i++;
+                        }
+                        i++;
+                        const rawStr = text.slice(strStart, i);
+                        let isKey = false;
+                        if (containerStack.length && containerStack[containerStack.length - 1]) {
+                            let j = i;
+                            while (j < n && (text[j] === ' ' || text[j] === '\t' || text[j] === '\n' || text[j] === '\r')) j++;
+                            if (j < n && text[j] === ':') isKey = true;
+                        }
+                        lineBuf.push('<span class="' + (isKey ? TOK_KEY : TOK_STR) + '">' + escapeHtml(rawStr) + '</span>');
+                        continue;
+                    }
+
+                    // 数字、true、false、null
+                    if ((ch >= '0' && ch <= '9') || ch === '-') {
+                        const numStart = i;
+                        if (ch === '-') i++;
+                        while (i < n && text[i] >= '0' && text[i] <= '9') i++;
+                        if (i < n && text[i] === '.') {
+                            i++;
+                            while (i < n && text[i] >= '0' && text[i] <= '9') i++;
+                        }
+                        if (i < n && (text[i] === 'e' || text[i] === 'E')) {
+                            i++;
+                            if (i < n && (text[i] === '+' || text[i] === '-')) i++;
+                            while (i < n && text[i] >= '0' && text[i] <= '9') i++;
+                        }
+                        lineBuf.push('<span class="' + TOK_NUM + '">' + escapeHtml(text.slice(numStart, i)) + '</span>');
+                        continue;
+                    }
+
+                    if ((ch === 't' && text.substr(i, 4) === 'true')) {
+                        lineBuf.push('<span class="' + TOK_BOOL + '">true</span>');
+                        i += 4;
+                        continue;
+                    }
+                    if ((ch === 'f' && text.substr(i, 5) === 'false')) {
+                        lineBuf.push('<span class="' + TOK_BOOL + '">false</span>');
+                        i += 5;
+                        continue;
+                    }
+                    if ((ch === 'n' && text.substr(i, 4) === 'null')) {
+                        lineBuf.push('<span class="' + TOK_NULL + '">null</span>');
+                        i += 4;
+                        continue;
+                    }
+
+                    if (ch === ':') {
+                        lineBuf.push('<span class="' + TOK_PUNC + '">:</span>');
+                        i++;
+                        continue;
+                    }
+
+                    lineBuf.push('<span class="' + TOK_UNKNOWN + '">' + escapeHtml(ch) + '</span>');
+                    i++;
+                }
+                // 循环结束后 push 最后一次，保证行数严格对齐 text.split('\n')
+                pushLine();
+                return lineHtmls;
+            }
+
             /* =============== JSON 折叠范围扫描 =============== */
-            // 返回 { foldMap: Map<startLine0, {end:endLine0, close: '}'|']'}>, indents: number[] }
+            // 返回 { foldMap, indents, lines, depths, guides }
+            // depths[i]    = 第 i 行（0-based）所在的 JSON 嵌套层级（顶层 = 0）
+            // guides[i]    = boolean[]，长度 = depths[i]，指示每一级父层级是否要画竖线
             function scanJsonStructure(text) {
                 const lineStart = [0];
                 for (let i = 0; i < text.length; i++) {
@@ -906,7 +1085,49 @@ console.log("用户详细信息:", user);</textarea>
                     }
                     return n;
                 });
-                return { foldMap: folds, indents: indents, lines: lines };
+
+                /* --- 计算每行的 JSON 深度 --- */
+                const n = lines.length;
+                const depths = new Array(n);
+                const guides = new Array(n);
+
+                let curDepth = 0;
+                for (let i = 0; i < n; i++) {
+                    depths[i] = curDepth;
+                    guides[i] = new Array(curDepth).fill(true);
+
+                    const line = lines[i];
+                    let inStr2 = false, quote2 = '', esc2 = false;
+                    let decrDepth = 0;
+                    let firstNonSpaceIdx = -1;
+                    for (let j = 0; j < line.length; j++) {
+                        const ch = line[j];
+                        if (inStr2) {
+                            if (esc2) esc2 = false;
+                            else if (ch === '\\') esc2 = true;
+                            else if (ch === quote2) inStr2 = false;
+                        } else {
+                            if (ch === '"') { inStr2 = true; quote2 = ch; if (firstNonSpaceIdx === -1) firstNonSpaceIdx = j; }
+                            else if (ch === '{' || ch === '[') { if (firstNonSpaceIdx === -1) firstNonSpaceIdx = j; curDepth++; }
+                            else if (ch === '}' || ch === ']') { if (firstNonSpaceIdx === -1) firstNonSpaceIdx = j; if (curDepth > 0) { curDepth--; decrDepth++; } }
+                            else if (firstNonSpaceIdx === -1 && ch !== ' ' && ch !== '\t') firstNonSpaceIdx = j;
+                        }
+                    }
+
+                    // 闭合行：该行第一个非空白字符为 } 或 ]，则父级最后一条竖线在本行终止
+                    if (firstNonSpaceIdx !== -1) {
+                        const fc = line[firstNonSpaceIdx];
+                        if (fc === '}' || fc === ']') {
+                            // 闭合的层数 = decrDepth，将 guides[i] 末尾 decrDepth 个置为 false
+                            const closeCount = Math.min(decrDepth, guides[i].length);
+                            for (let k = guides[i].length - closeCount; k < guides[i].length; k++) {
+                                guides[i][k] = false;
+                            }
+                        }
+                    }
+                }
+
+                return { foldMap: folds, indents: indents, lines: lines, depths: depths, guides: guides };
             }
 
             /* =============== 编辑器工厂（行号 + JSON 视图 + 折叠） =============== */
@@ -1024,9 +1245,10 @@ console.log("用户详细信息:", user);</textarea>
                 }
                 function renderJsonView() {
                     const text = textarea.value;
-                    const { foldMap, indents, lines } = scanJsonStructure(text);
+                    const { foldMap, indents, lines, depths, guides } = scanJsonStructure(text);
                     const totalLines = lines.length;
                     const savedScrollTop = contentEl.scrollTop;
+                    const highlightedLines = highlightJson(text);
 
                     // 计算"隐藏行"集合：所有被折叠的区间 start+1 ~ end
                     const hidden = new Set();
@@ -1056,12 +1278,24 @@ console.log("用户详细信息:", user);</textarea>
                         gutterParts.push('<div class="row">' + btnHtml
                             + '<span class="gutter-num">' + (i + 1) + '</span></div>');
 
-                        let lineText = escapeHtml(lines[i]);
+                        // 层级竖线（父级竖线）
+                        const depth = depths[i];
+                        const guideFlags = guides[i];
+                        let guidesHtml = '';
+                        for (let g = 0; g < depth; g++) {
+                            guidesHtml += '<span class="indent-guide'
+                                + (guideFlags[g] ? ' guide-on' : ' guide-off')
+                                + '"></span>';
+                        }
+
+                        let lineText = highlightedLines[i] !== undefined ? highlightedLines[i] : escapeHtml(lines[i]);
                         if (isFolded && foldInfo) {
                             const count = foldInfo.end - i;
                             lineText += '<i class="fold-placeholder"> ⋯ ' + count + ' lines ' + foldInfo.close + ' </i>';
                         }
-                        contentParts.push('<div class="row" data-line="' + i + '">' + lineText + '</div>');
+                        contentParts.push('<div class="row" data-line="' + i + '">'
+                            + '<span class="indent-guides">' + guidesHtml + '</span>'
+                            + lineText + '</div>');
                     }
 
                     const gutterInner = ensureGutterInner();
