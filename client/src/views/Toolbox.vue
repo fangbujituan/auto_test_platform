@@ -4,39 +4,68 @@
     <AppHeader />
     
     <div class="toolbox-container">
-      <div class="toolbox-header">
-        <h1>工具箱</h1>
-        <p>测试小工具</p>
-      </div>
-
-      <div class="tools-grid">
-        <!-- 测试用例生成工具卡片 -->
-        <div class="tool-card" @click="openTestCaseGenerator">
-          <div class="card-icon">📋</div>
-          <div class="card-content">
-            <h3>测试用例生成器</h3>
-            <p>根据参数定义自动生成测试用例</p>
+      <!-- 子页面模式：文本对比工具 -->
+      <template v-if="strtostrSubPage">
+        <div class="toolbox-header subpage-header">
+          <button class="back-btn" @click="exitStrToStr">
+            <span class="back-arrow">←</span>
+            <span>返回工具箱</span>
+          </button>
+          <div class="subpage-title">
+            <h1>文本对比工具</h1>
+            <p>对比两段文本的差异，支持 JSON 格式化与折叠</p>
           </div>
         </div>
+        <div class="strtostr-fullpage">
+          <StrToStrTool />
+        </div>
+      </template>
 
-        <!-- Excel数据库比对工具卡片 -->
-        <div class="tool-card" @click="openExcelDBComparator">
-          <div class="card-icon">📊</div>
-          <div class="card-content">
-            <h3>Excel数据库比对</h3>
-            <p>比对Excel文件与数据库数据的差异</p>
-          </div>
+      <!-- 卡片列表模式 -->
+      <template v-else>
+        <div class="toolbox-header">
+          <h1>工具箱</h1>
+          <p>测试小工具</p>
         </div>
 
-        <!-- 哈希密码破解工具卡片 -->
-        <div class="tool-card" @click="openHashTool">
-          <div class="card-icon">🔐</div>
-          <div class="card-content">
-            <h3>哈希密码破解</h3>
-            <p>哈希密码转换为明文</p>
+        <div class="tools-grid">
+          <!-- 测试用例生成工具卡片 -->
+          <div class="tool-card" @click="openTestCaseGenerator">
+            <div class="card-icon">📋</div>
+            <div class="card-content">
+              <h3>测试用例生成器</h3>
+              <p>根据参数定义自动生成测试用例</p>
+            </div>
+          </div>
+
+          <!-- Excel数据库比对工具卡片 -->
+          <div class="tool-card" @click="openExcelDBComparator">
+            <div class="card-icon">📊</div>
+            <div class="card-content">
+              <h3>Excel数据库比对</h3>
+              <p>比对Excel文件与数据库数据的差异</p>
+            </div>
+          </div>
+
+          <!-- 哈希密码破解工具卡片 -->
+          <div class="tool-card" @click="openHashTool">
+            <div class="card-icon">🔐</div>
+            <div class="card-content">
+              <h3>哈希密码破解</h3>
+              <p>哈希密码转换为明文</p>
+            </div>
+          </div>
+
+          <!-- 文本对比工具卡片 -->
+          <div class="tool-card" @click="enterStrToStr">
+            <div class="card-icon">🔍</div>
+            <div class="card-content">
+              <h3>文本对比工具</h3>
+              <p>对比两段文本的差异，支持 JSON 格式化与折叠</p>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
 
       <!-- 测试用例生成器对话框 -->
       <el-dialog
@@ -462,7 +491,19 @@ import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import AppHeader from '../components/AppHeader.vue'
+import StrToStrTool from '../components/StrToStrTool.vue'
 import { generateTestCases, compareExcelDB, crackHash } from '../api/toolbox'
+
+// ========== 文本对比工具相关（子页面模式） ==========
+const strtostrSubPage = ref(false)
+
+const enterStrToStr = () => {
+  strtostrSubPage.value = true
+}
+
+const exitStrToStr = () => {
+  strtostrSubPage.value = false
+}
 
 // ========== 测试用例生成器相关 ==========
 const generatorDialogVisible = ref(false)
@@ -848,6 +889,9 @@ const doCrack = async () => {
 .toolbox-container {
   flex: 1;
   padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .toolbox-header {
@@ -865,6 +909,57 @@ const doCrack = async () => {
   font-size: 14px;
   color: var(--el-text-color-placeholder);
   margin: 0;
+}
+
+/* 子页面模式头部 */
+.subpage-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.back-btn:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.back-arrow {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.subpage-title h1 {
+  font-size: 20px;
+  margin: 0 0 4px 0;
+}
+
+.subpage-title p {
+  font-size: 13px;
+  margin: 0;
+}
+
+/* 文本对比工具填满剩余区域 */
+.strtostr-fullpage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .tools-grid {
